@@ -1,4 +1,4 @@
-# 💰 FinanceFlow Backend
+# 💰 Miu Controle Backend
 
 API REST completa para controle financeiro pessoal com autenticação JWT, analytics avançado e sistema de categorização inteligente.
 
