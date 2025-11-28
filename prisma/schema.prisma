@@ -1,0 +1,316 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==================== MODELOS ====================
+
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  passwordHash      String             @map("password_hash")
+  fullName          String             @map("full_name")
+  phone             String?
+  avatarUrl         String?            @map("avatar_url")
+  subscriptionTier  SubscriptionTier   @default(FREE) @map("subscription_tier")
+  emailVerified     Boolean            @default(false) @map("email_verified")
+  twoFactorEnabled  Boolean            @default(false) @map("two_factor_enabled")
+  lastLoginAt       DateTime?          @map("last_login_at")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  accounts          Account[]
+  categories        Category[]
+  transactions      Transaction[]
+  budgets           Budget[]
+  goals             Goal[]
+  rules             CategorizationRule[]
+  refreshTokens     RefreshToken[]
+  notificationLogs  NotificationLog[]
+  subscription      UserSubscription?
+
+  @@map("users")
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  FAMILY
+}
+
+model Account {
+  id                      String      @id @default(uuid())
+  userId                  String      @map("user_id")
+  user                    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                    String
+  type                    AccountType
+  bankCode                String?     @map("bank_code")
+  initialBalance          Decimal     @default(0) @map("initial_balance") @db.Decimal(15, 2)
+  currentBalance          Decimal     @default(0) @map("current_balance") @db.Decimal(15, 2)
+  currency                String      @default("BRL")
+  color                   String      @default("#6366F1")
+  icon                    String?
+  isActive                Boolean     @default(true) @map("is_active")
+  openBankingConnected    Boolean     @default(false) @map("open_banking_connected")
+  openBankingConsentId    String?     @map("open_banking_consent_id")
+  createdAt               DateTime    @default(now()) @map("created_at")
+  updatedAt               DateTime    @updatedAt @map("updated_at")
+
+  transactions            Transaction[]
+
+  @@index([userId, isActive])
+  @@map("accounts")
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  INVESTMENT
+}
+
+model Category {
+  id                String        @id @default(uuid())
+  userId            String?       @map("user_id")
+  user              User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  type              CategoryType
+  parentId          String?       @map("parent_id")
+  parent            Category?     @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children          Category[]    @relation("CategoryHierarchy")
+  color             String        @default("#94A3B8")
+  icon              String?
+  isSystem          Boolean       @default(false) @map("is_system")
+  budgetAllocated   Decimal?      @map("budget_allocated") @db.Decimal(15, 2)
+  createdAt         DateTime      @default(now()) @map("created_at")
+
+  transactions      Transaction[]
+  budgets           Budget[]
+  rules             CategorizationRule[]
+
+  @@index([userId, type])
+  @@map("categories")
+}
+
+enum CategoryType {
+  EXPENSE
+  INCOME
+  TRANSFER
+}
+
+model Transaction {
+  id                String              @id @default(uuid())
+  userId            String              @map("user_id")
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId         String              @map("account_id")
+  account           Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  categoryId        String?             @map("category_id")
+  category          Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  type              CategoryType
+  amount            Decimal             @db.Decimal(15, 2)
+  description       String
+  merchant          String?
+  date              DateTime
+  isRecurring       Boolean             @default(false) @map("is_recurring")
+  recurrencePattern String?             @map("recurrence_pattern")
+  tags              String[]
+  notes             String?
+  location          Json?
+  receiptUrl        String?             @map("receipt_url")
+  status            TransactionStatus   @default(COMPLETED)
+  source            TransactionSource   @default(MANUAL)
+  notificationHash  String?             @unique @map("notification_hash")
+  aiConfidence      Decimal?            @map("ai_confidence") @db.Decimal(3, 2)
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  goalContributions GoalContribution[]
+  notificationLog   NotificationLog?
+
+  @@index([userId, date(sort: Desc)])
+  @@index([accountId])
+  @@index([categoryId])
+  @@map("transactions")
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionSource {
+  MANUAL
+  NOTIFICATION
+  OPEN_BANKING
+  IMPORTED
+}
+
+model Budget {
+  id              String        @id @default(uuid())
+  userId          String        @map("user_id")
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId      String        @map("category_id")
+  category        Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  amount          Decimal       @db.Decimal(15, 2)
+  period          BudgetPeriod  @default(MONTHLY)
+  startDate       DateTime      @map("start_date")
+  endDate         DateTime?     @map("end_date")
+  alertPercentage Int           @default(80) @map("alert_percentage")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@unique([userId, categoryId, period, startDate])
+  @@index([userId, period, startDate])
+  @@map("budgets")
+}
+
+enum BudgetPeriod {
+  MONTHLY
+  WEEKLY
+  YEARLY
+}
+
+model Goal {
+  id            String        @id @default(uuid())
+  userId        String        @map("user_id")
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  targetAmount  Decimal       @map("target_amount") @db.Decimal(15, 2)
+  currentAmount Decimal       @default(0) @map("current_amount") @db.Decimal(15, 2)
+  targetDate    DateTime?     @map("target_date")
+  color         String        @default("#10B981")
+  icon          String?
+  priority      Int           @default(3)
+  status        GoalStatus    @default(ACTIVE)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  completedAt   DateTime?     @map("completed_at")
+
+  contributions GoalContribution[]
+
+  @@index([userId, status])
+  @@map("goals")
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model GoalContribution {
+  id            String       @id @default(uuid())
+  goalId        String       @map("goal_id")
+  goal          Goal         @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  transactionId String?      @map("transaction_id")
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  amount        Decimal      @db.Decimal(15, 2)
+  date          DateTime
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  @@map("goal_contributions")
+}
+
+model CategorizationRule {
+  id              String            @id @default(uuid())
+  userId          String            @map("user_id")
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId      String            @map("category_id")
+  category        Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  conditionType   RuleConditionType @map("condition_type")
+  conditionValue  String            @map("condition_value")
+  priority        Int               @default(100)
+  isActive        Boolean           @default(true) @map("is_active")
+  matchCount      Int               @default(0) @map("match_count")
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  @@index([userId, isActive, priority])
+  @@map("categorization_rules")
+}
+
+enum RuleConditionType {
+  CONTAINS
+  STARTS_WITH
+  ENDS_WITH
+  REGEX
+}
+
+model UserSubscription {
+  id                      String              @id @default(uuid())
+  userId                  String              @unique @map("user_id")
+  user                    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                    SubscriptionTier
+  status                  SubscriptionStatus
+  paymentProvider         String              @default("ABACATEPAY") @map("payment_provider")
+  externalSubscriptionId  String?             @map("external_subscription_id")
+  amount                  Decimal             @db.Decimal(10, 2)
+  currency                String              @default("BRL")
+  billingCycle            BillingCycle        @default(MONTHLY) @map("billing_cycle")
+  currentPeriodStart      DateTime            @map("current_period_start")
+  currentPeriodEnd        DateTime            @map("current_period_end")
+  trialEndsAt             DateTime?           @map("trial_ends_at")
+  cancelledAt             DateTime?           @map("cancelled_at")
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("user_subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  TRIALING
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+model NotificationLog {
+  id                String              @id @default(uuid())
+  userId            String              @map("user_id")
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationHash  String              @unique @map("notification_hash")
+  rawContent        String              @map("raw_content")
+  parsedData        Json?               @map("parsed_data")
+  bankDetected      String?             @map("bank_detected")
+  amountDetected    Decimal?            @map("amount_detected") @db.Decimal(15, 2)
+  transactionId     String?             @unique @map("transaction_id")
+  transaction       Transaction?        @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  processingStatus  NotificationStatus  @default(PENDING) @map("processing_status")
+  errorMessage      String?             @map("error_message")
+  receivedAt        DateTime            @default(now()) @map("received_at")
+  processedAt       DateTime?           @map("processed_at")
+
+  @@index([userId, receivedAt(sort: Desc)])
+  @@map("notification_logs")
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSED
+  FAILED
+  DUPLICATE
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token       String    @unique
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at")
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
