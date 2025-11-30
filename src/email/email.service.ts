@@ -168,4 +168,126 @@ export class EmailService {
       this.logger.error('Falha ao enviar confirmação:', error);
     }
   }
+
+  /**
+   * Envia email de verificação
+   */
+  async sendEmailVerification(to: string, token: string, userName: string) {
+    const frontendUrl = this.configService.get('FRONTEND_URL');
+    const verifyUrl = `${frontendUrl}/verify-email?token=${token}`;
+
+    try {
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
+        to,
+        subject: '✉️ Confirme seu email - Miu Controle',
+        html: this.getEmailVerificationTemplate(userName, verifyUrl),
+      });
+
+      if (error) {
+        this.logger.error('Erro ao enviar verificação:', error);
+        throw error;
+      }
+
+      this.logger.log(`Email de verificação enviado para: ${to}`);
+      return data;
+    } catch (error) {
+      this.logger.error('Falha ao enviar verificação:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Template HTML para verificação de email
+   */
+  private getEmailVerificationTemplate(
+    userName: string,
+    verifyUrl: string,
+  ): string {
+    return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verificação de Email</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f5f5;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td align="center" style="padding: 40px 0;">
+              <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                
+                <!-- Header -->
+                <tr>
+                  <td style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #10B981 0%, #06B6D4 100%); border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">✉️ Miu Controle</h1>
+                  </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                  <td style="padding: 40px;">
+                    <h2 style="margin: 0 0 20px 0; color: #1a1a1a; font-size: 24px; font-weight: 600;">
+                      Bem-vindo, ${userName}! 🎉
+                    </h2>
+                    
+                    <p style="margin: 0 0 20px 0; color: #666666; font-size: 16px; line-height: 1.6;">
+                      Obrigado por se cadastrar no Miu Controle!
+                    </p>
+
+                    <p style="margin: 0 0 30px 0; color: #666666; font-size: 16px; line-height: 1.6;">
+                      Para começar a usar sua conta, por favor confirme seu endereço de email clicando no botão abaixo:
+                    </p>
+
+                    <!-- Button -->
+                    <table role="presentation" style="margin: 0 auto;">
+                      <tr>
+                        <td style="border-radius: 6px; background: linear-gradient(135deg, #10B981 0%, #06B6D4 100%);">
+                          <a href="${verifyUrl}" target="_blank" style="display: inline-block; padding: 16px 40px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 6px;">
+                            Confirmar Email
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Alternative Link -->
+                    <p style="margin: 30px 0 0 0; padding: 20px 0 0 0; border-top: 1px solid #e5e5e5; color: #999999; font-size: 14px; line-height: 1.6;">
+                      Ou copie e cole este link no seu navegador:<br>
+                      <a href="${verifyUrl}" style="color: #10B981; word-break: break-all;">${verifyUrl}</a>
+                    </p>
+
+                    <!-- Info -->
+                    <div style="margin: 20px 0 0 0; padding: 16px; background-color: #DBEAFE; border-left: 4px solid #3B82F6; border-radius: 4px;">
+                      <p style="margin: 0; color: #1E40AF; font-size: 14px; line-height: 1.6;">
+                        ℹ️ <strong>Importante:</strong> Este link expira em 24 horas.
+                      </p>
+                    </div>
+
+                    <p style="margin: 20px 0 0 0; color: #999999; font-size: 14px; line-height: 1.6;">
+                      Se você não criou esta conta, pode ignorar este email com segurança.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 30px 40px; text-align: center; background-color: #f9fafb; border-radius: 0 0 8px 8px;">
+                    <p style="margin: 0; color: #999999; font-size: 14px;">
+                      © ${new Date().getFullYear()} Miu Controle. Todos os direitos reservados.
+                    </p>
+                    <p style="margin: 10px 0 0 0; color: #999999; font-size: 12px;">
+                      Este é um email automático. Por favor, não responda.
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+  }
 }
