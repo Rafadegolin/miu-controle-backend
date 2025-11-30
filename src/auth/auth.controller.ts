@@ -3,10 +3,14 @@ import {
   Post,
   Body,
   Get,
+  Delete,
+  Param,
   UseGuards,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -14,6 +18,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { SessionsService } from './sessions.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -23,23 +28,35 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyResetTokenDto } from './dto/verify-reset-token.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { CurrentRefreshToken } from './decorators/current-refresh-token.decorator';
 
 @ApiTags('Autenticação')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly sessionsService: SessionsService,
+  ) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Criar nova conta' })
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  @ApiResponse({ status: 201, description: 'Conta criada com sucesso' })
+  @ApiResponse({ status: 409, description: 'Email já cadastrado' })
+  async register(@Body() registerDto: RegisterDto, @Req() req: Request) {
+    const userAgent = req.headers['user-agent'];
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    return this.authService.register(registerDto, userAgent, ipAddress);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Fazer login' })
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  @ApiResponse({ status: 200, description: 'Login realizado com sucesso' })
+  @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
+  async login(@Body() loginDto: LoginDto, @Req() req: Request) {
+    const userAgent = req.headers['user-agent'];
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    return this.authService.login(loginDto, userAgent, ipAddress);
   }
 
   @Get('me')
@@ -96,5 +113,46 @@ export class AuthController {
     @Body() resendVerificationDto: ResendVerificationDto,
   ) {
     return this.authService.resendVerification(resendVerificationDto);
+  }
+
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Listar sessões ativas' })
+  @ApiResponse({ status: 200, description: 'Lista de sessões retornada' })
+  async getSessions(
+    @CurrentUser() user: any,
+    @CurrentRefreshToken() currentToken: string,
+  ) {
+    return this.sessionsService.getUserSessions(user.id, currentToken);
+  }
+
+  @Delete('sessions/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revogar sessão específica' })
+  @ApiResponse({ status: 200, description: 'Sessão revogada' })
+  @ApiResponse({ status: 403, description: 'Não pode revogar sessão atual' })
+  @ApiResponse({ status: 404, description: 'Sessão não encontrada' })
+  async revokeSession(
+    @CurrentUser() user: any,
+    @Param('id') sessionId: string,
+    @CurrentRefreshToken() currentToken: string,
+  ) {
+    return this.sessionsService.revokeSession(user.id, sessionId, currentToken);
+  }
+
+  @Delete('sessions/revoke-all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revogar todas as sessões exceto a atual' })
+  @ApiResponse({ status: 200, description: 'Sessões revogadas' })
+  async revokeAllSessions(
+    @CurrentUser() user: any,
+    @CurrentRefreshToken() currentToken: string,
+  ) {
+    return this.sessionsService.revokeAllSessions(user.id, currentToken);
   }
 }
