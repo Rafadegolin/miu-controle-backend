@@ -1,39 +1,68 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsEnum, IsDateString, IsString } from 'class-validator';
-import { CategoryType, TransactionStatus } from '@prisma/client';
+import {
+  IsOptional,
+  IsEnum,
+  IsDateString,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+import { TransactionType, TransactionStatus } from '@prisma/client'; // <-- REMOVER CategoryType
 
 export class FilterTransactionDto {
-  @ApiPropertyOptional({ enum: CategoryType })
+  @ApiPropertyOptional({
+    enum: TransactionType, // <-- USAR TransactionType
+    example: 'EXPENSE',
+    description: 'Filtrar por tipo de transação',
+  })
   @IsOptional()
-  @IsEnum(CategoryType)
-  type?: CategoryType;
+  @IsEnum(TransactionType) // <-- USAR TransactionType
+  type?: TransactionType; // <-- USAR TransactionType
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    example: 'uuid-da-categoria',
+    description: 'Filtrar por categoria',
+  })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   categoryId?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    example: 'uuid-da-conta',
+    description: 'Filtrar por conta',
+  })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   accountId?: string;
 
-  @ApiPropertyOptional({ example: '2025-11-01' })
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
-
-  @ApiPropertyOptional({ example: '2025-11-30' })
-  @IsOptional()
-  @IsDateString()
-  endDate?: string;
-
-  @ApiPropertyOptional({ enum: TransactionStatus })
+  @ApiPropertyOptional({
+    enum: TransactionStatus,
+    example: 'COMPLETED',
+    description: 'Filtrar por status',
+  })
   @IsOptional()
   @IsEnum(TransactionStatus)
   status?: TransactionStatus;
 
-  @ApiPropertyOptional({ example: 'restaurante' })
+  @ApiPropertyOptional({
+    example: '2024-01-01',
+    description: 'Data inicial (YYYY-MM-DD)',
+  })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @ApiPropertyOptional({
+    example: '2024-12-31',
+    description: 'Data final (YYYY-MM-DD)',
+  })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @ApiPropertyOptional({
+    example: 'mercado',
+    description: 'Buscar por descrição ou merchant',
+  })
   @IsOptional()
   @IsString()
   search?: string;
