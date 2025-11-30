@@ -112,7 +112,7 @@ model Transaction {
   account           Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
   categoryId        String?             @map("category_id")
   category          Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  type              CategoryType
+  type              TransactionType     // <-- CORRIGIDO: era CategoryType, agora é TransactionType
   amount            Decimal             @db.Decimal(15, 2)
   description       String
   merchant          String?
@@ -150,6 +150,11 @@ enum TransactionSource {
   NOTIFICATION
   OPEN_BANKING
   IMPORTED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
 }
 
 model Budget {
@@ -312,11 +317,11 @@ model RefreshToken {
   createdAt   DateTime  @default(now()) @map("created_at")
   revokedAt   DateTime? @map("revoked_at")
   
-  // NOVOS CAMPOS
-  deviceInfo  String?   @map("device_info")  // Ex: "Chrome 120 - Windows 10"
-  ipAddress   String?   @map("ip_address")   // Ex: "192.168.1.100"
-  userAgent   String?   @map("user_agent")   // User-Agent completo
-  lastUsedAt  DateTime? @map("last_used_at") // Última vez que usou este token
+  // Campos de sessão
+  deviceInfo  String?   @map("device_info")
+  ipAddress   String?   @map("ip_address")
+  userAgent   String?   @map("user_agent")
+  lastUsedAt  DateTime? @map("last_used_at")
 
   @@index([userId])
   @@index([token])

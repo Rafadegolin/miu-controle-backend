@@ -7,13 +7,18 @@ import {
   IsDateString,
   IsBoolean,
   IsArray,
+  IsNotEmpty, // <-- ADICIONAR AQUI
   Min,
   MaxLength,
 } from 'class-validator';
-import { CategoryType, TransactionSource } from '@prisma/client';
+import {
+  TransactionSource,
+  TransactionType, // <-- REMOVER CategoryType daqui
+} from '@prisma/client';
 
 export class CreateTransactionDto {
   @ApiProperty({ example: 'uuid-da-conta' })
+  @IsNotEmpty() // <-- ADICIONAR
   @IsString()
   accountId: string;
 
@@ -22,20 +27,19 @@ export class CreateTransactionDto {
   @IsString()
   categoryId?: string;
 
-  @ApiProperty({
-    enum: CategoryType,
-    example: 'EXPENSE',
-    description: 'EXPENSE, INCOME ou TRANSFER',
-  })
-  @IsEnum(CategoryType)
-  type: CategoryType;
+  @ApiProperty({ enum: TransactionType, example: 'EXPENSE' })
+  @IsNotEmpty() // <-- JÁ TEM
+  @IsEnum(TransactionType)
+  type: TransactionType;
 
   @ApiProperty({ example: 150.5 })
+  @IsNotEmpty() // <-- ADICIONAR
   @IsNumber()
   @Min(0.01, { message: 'Valor deve ser maior que zero' })
   amount: number;
 
   @ApiProperty({ example: 'Almoço no restaurante' })
+  @IsNotEmpty() // <-- ADICIONAR
   @IsString()
   @MaxLength(500)
   description: string;
