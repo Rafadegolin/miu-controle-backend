@@ -21,6 +21,8 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyResetTokenDto } from './dto/verify-reset-token.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 
 @ApiTags('Autenticação')
 @Controller('auth')
@@ -73,5 +75,26 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Token inválido/expirado' })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verificar email com token' })
+  @ApiResponse({ status: 200, description: 'Email verificado com sucesso' })
+  @ApiResponse({ status: 400, description: 'Token inválido/expirado' })
+  @ApiResponse({ status: 409, description: 'Email já verificado' })
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return this.authService.verifyEmail(verifyEmailDto);
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reenviar email de verificação' })
+  @ApiResponse({ status: 200, description: 'Email reenviado (se existir)' })
+  @ApiResponse({ status: 409, description: 'Email já verificado' })
+  async resendVerification(
+    @Body() resendVerificationDto: ResendVerificationDto,
+  ) {
+    return this.authService.resendVerification(resendVerificationDto);
   }
 }
