@@ -12,10 +12,11 @@ import { LoginDto } from './dto/login.dto';
 import { EmailService } from '../email/email.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
+import { parseDeviceInfo } from '../common/utils/device-info.util';
 
 @Injectable()
 export class AuthService {
@@ -26,7 +27,62 @@ export class AuthService {
     private emailService: EmailService,
   ) {}
 
-  async login(loginDto: LoginDto) {
+  /**
+   * Registro com envio automático de verificação
+   */
+  async register(
+    registerDto: RegisterDto,
+    userAgent?: string,
+    ipAddress?: string,
+  ) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: registerDto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Email já cadastrado');
+    }
+
+    const passwordHash = await bcrypt.hash(registerDto.password, 10);
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: registerDto.email,
+        fullName: registerDto.fullName,
+        passwordHash,
+        emailVerified: false,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        subscriptionTier: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    });
+
+    // Enviar email de verificação automaticamente
+    await this.sendVerificationEmail(user.id, user.email, user.fullName);
+
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      userAgent,
+      ipAddress,
+    );
+
+    return {
+      user,
+      ...tokens,
+      message: 'Conta criada! Verifique seu email para ativar.',
+    };
+  }
+
+  /**
+   * Login
+   */
+  async login(loginDto: LoginDto, userAgent?: string, ipAddress?: string) {
     const user = await this.prisma.user.findUnique({
       where: { email: loginDto.email },
     });
@@ -49,7 +105,12 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
-    const tokens = await this.generateTokens(user.id, user.email);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      userAgent,
+      ipAddress,
+    );
 
     return {
       user: {
@@ -62,32 +123,42 @@ export class AuthService {
     };
   }
 
-  private async generateTokens(userId: string, email: string) {
-    const payload = { sub: userId, email };
-
-    // ✅ CORREÇÃO: sem options no signAsync
-    const accessToken = await this.jwtService.signAsync(payload);
-
-    // Para refresh token, criar outro JwtService com config diferente
-    // ou usar uma lib separada. Por enquanto, usar o mesmo:
-    const refreshToken = await this.jwtService.signAsync(payload);
-
-    // Salvar refresh token no banco
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 dias
-
-    await this.prisma.refreshToken.create({
-      data: {
-        userId,
-        token: refreshToken,
-        expiresAt,
-      },
+  /**
+   * Refresh tokens
+   */
+  async refreshTokens(
+    userId: string,
+    refreshToken: string,
+    userAgent?: string,
+    ipAddress?: string,
+  ) {
+    const tokenRecord = await this.prisma.refreshToken.findUnique({
+      where: { token: refreshToken },
     });
 
-    return {
-      accessToken,
-      refreshToken,
-    };
+    if (
+      !tokenRecord ||
+      tokenRecord.revokedAt ||
+      tokenRecord.userId !== userId
+    ) {
+      throw new UnauthorizedException('Token inválido');
+    }
+
+    if (new Date() > tokenRecord.expiresAt) {
+      throw new UnauthorizedException('Token expirado');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    // Atualizar lastUsedAt do token atual
+    await this.prisma.refreshToken.update({
+      where: { token: refreshToken },
+      data: { lastUsedAt: new Date() },
+    });
+
+    return this.generateTokens(user.id, user.email, userAgent, ipAddress);
   }
 
   /**
@@ -96,7 +167,6 @@ export class AuthService {
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
     const { email } = forgotPasswordDto;
 
-    // Buscar usuário
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -144,7 +214,6 @@ export class AuthService {
         user.fullName,
       );
     } catch (error) {
-      // Log mas não quebra o fluxo
       console.error('Erro ao enviar email:', error);
     }
 
@@ -187,7 +256,6 @@ export class AuthService {
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
     const { token, newPassword } = resetPasswordDto;
 
-    // Buscar token
     const resetToken = await this.prisma.passwordResetToken.findUnique({
       where: { token },
       include: { user: true },
@@ -251,49 +319,6 @@ export class AuthService {
   }
 
   /**
-   * Registro com envio automático de verificação
-   */
-  async register(registerDto: RegisterDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: registerDto.email },
-    });
-
-    if (existingUser) {
-      throw new ConflictException('Email já cadastrado');
-    }
-
-    const passwordHash = await bcrypt.hash(registerDto.password, 10);
-
-    const user = await this.prisma.user.create({
-      data: {
-        email: registerDto.email,
-        fullName: registerDto.fullName,
-        passwordHash,
-        emailVerified: false, // <-- Inicia como não verificado
-      },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        subscriptionTier: true,
-        emailVerified: true,
-        createdAt: true,
-      },
-    });
-
-    // Enviar email de verificação automaticamente
-    await this.sendVerificationEmail(user.id, user.email, user.fullName);
-
-    const tokens = await this.generateTokens(user.id, user.email);
-
-    return {
-      user,
-      ...tokens,
-      message: 'Conta criada! Verifique seu email para ativar.',
-    };
-  }
-
-  /**
    * Envia email de verificação (interno)
    */
   private async sendVerificationEmail(
@@ -342,7 +367,6 @@ export class AuthService {
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
     const { token } = verifyEmailDto;
 
-    // Buscar token
     const verificationToken =
       await this.prisma.emailVerificationToken.findUnique({
         where: { token },
@@ -394,7 +418,6 @@ export class AuthService {
     });
 
     if (!user) {
-      // Segurança: não revela se email existe
       return {
         message:
           'Se o email existir e não estiver verificado, enviaremos um novo link.',
@@ -411,6 +434,50 @@ export class AuthService {
     return {
       message:
         'Se o email existir e não estiver verificado, enviaremos um novo link.',
+    };
+  }
+
+  /**
+   * Gera tokens JWT com informações de sessão
+   */
+  private async generateTokens(
+    userId: string,
+    email: string,
+    userAgent?: string,
+    ipAddress?: string,
+  ) {
+    const payload = { sub: userId, email };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get('JWT_EXPIRES_IN') || '15m',
+        secret: this.configService.get('JWT_SECRET'),
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get('REFRESH_TOKEN_EXPIRES_IN') || '7d',
+        secret: this.configService.get('REFRESH_TOKEN_SECRET'),
+      }),
+    ]);
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    // Salvar com informações do dispositivo
+    await this.prisma.refreshToken.create({
+      data: {
+        userId,
+        token: refreshToken,
+        expiresAt,
+        deviceInfo: userAgent ? parseDeviceInfo(userAgent) : null,
+        ipAddress: ipAddress || null,
+        userAgent: userAgent || null,
+        lastUsedAt: new Date(),
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
     };
   }
 }
