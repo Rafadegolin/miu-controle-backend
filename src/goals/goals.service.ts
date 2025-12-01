@@ -9,10 +9,14 @@ import { CreateGoalDto } from './dto/create-goal.dto';
 import { UpdateGoalDto } from './dto/update-goal.dto';
 import { ContributeGoalDto } from './dto/contribute-goal.dto';
 import { GoalStatus } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class GoalsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async create(userId: string, createGoalDto: CreateGoalDto) {
     const targetDate = createGoalDto.targetDate
@@ -228,6 +232,14 @@ export class GoalsService {
       where: { id },
       data: updateData,
     });
+
+    // VERIFICAR PROGRESSO E CRIAR NOTIFICAÇÕES (SE NECESSÁRIO)
+    try {
+      await this.notificationsService.checkGoalAchieved(id);
+    } catch (error) {
+      // Não quebrar o fluxo se falhar notificação
+      console.error('Erro ao verificar progresso da meta:', error);
+    }
 
     return {
       contribution,

@@ -15,6 +15,31 @@ export class EmailService {
   }
 
   /**
+   * Envia email genérico
+   */
+  async sendEmail(to: string, subject: string, html: string) {
+    try {
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
+        to,
+        subject,
+        html,
+      });
+
+      if (error) {
+        this.logger.error('Erro ao enviar email:', error);
+        throw error;
+      }
+
+      this.logger.log(`Email enviado para: ${to}`);
+      return data;
+    } catch (error) {
+      this.logger.error('Falha ao enviar email:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Envia email de recuperação de senha
    */
   async sendPasswordResetEmail(to: string, token: string, userName: string) {
