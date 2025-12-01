@@ -34,6 +34,7 @@ model User {
   subscription      UserSubscription?
   passwordResetTokens PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
+  notifications     Notification[]
 
   @@map("users")
 }
@@ -354,4 +355,29 @@ model EmailVerificationToken {
   @@index([userId])
   @@index([token])
   @@map("email_verification_tokens")
+}
+
+model Notification {
+  id        String             @id @default(uuid())
+  userId    String             @map("user_id")
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType   @map("type")
+  title     String
+  message   String
+  data      Json?              // Dados adicionais (budgetId, goalId, etc)
+  read      Boolean            @default(false)
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  @@index([userId, read])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  BUDGET_ALERT       // Orçamento atingiu % de alerta
+  BUDGET_EXCEEDED    // Orçamento estourado
+  GOAL_ACHIEVED      // Meta atingida
+  GOAL_MILESTONE     // Meta atingiu milestone (25%, 50%, 75%)
+  BILL_DUE           // Conta a vencer
+  SYSTEM             // Notificação do sistema
 }
