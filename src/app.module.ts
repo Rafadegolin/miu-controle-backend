@@ -13,6 +13,8 @@ import { EmailModule } from './email/email.module';
 import { ExportModule } from './export/export.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RecurringTransactionsModule } from './recurring-transactions/recurring-transactions.module';
+import { CurrenciesModule } from './currencies/currencies.module';
+import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { RecurringTransactionsModule } from './recurring-transactions/recurring-
     ExportModule,
     NotificationsModule,
     RecurringTransactionsModule,
+    CurrenciesModule,
+    ExchangeRatesModule,
   ],
 })
 export class AppModule {}
