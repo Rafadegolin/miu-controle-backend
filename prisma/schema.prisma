@@ -36,6 +36,7 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   notifications     Notification[]
   recurringTransactions RecurringTransaction[]
+  preferredCurrency String  @default("BRL") @map("preferred_currency")
 
   @@map("users")
 }
@@ -429,4 +430,34 @@ enum RecurrenceFrequency {
   WEEKLY
   MONTHLY
   YEARLY
+}
+
+model Currency {
+  id        String   @id @default(uuid())
+  code      String   @unique // ISO 4217: USD, EUR, BRL, etc
+  name      String   // Dólar Americano, Euro, Real
+  symbol    String   // $, €, R$
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  exchangeRatesFrom ExchangeRate[] @relation("FromCurrency")
+  exchangeRatesTo   ExchangeRate[] @relation("ToCurrency")
+
+  @@map("currencies")
+}
+
+model ExchangeRate {
+  id             String   @id @default(uuid())
+  fromCurrencyId String   @map("from_currency_id")
+  fromCurrency   Currency @relation("FromCurrency", fields: [fromCurrencyId], references: [id], onDelete: Cascade)
+  toCurrencyId   String   @map("to_currency_id")
+  toCurrency     Currency @relation("ToCurrency", fields: [toCurrencyId], references: [id], onDelete: Cascade)
+  rate           Decimal  @db.Decimal(18, 6) // Taxa de conversão com 6 casas decimais
+  date           DateTime @default(now())
+  source         String   @default("MANUAL") // MANUAL, API, SYSTEM
+
+  @@unique([fromCurrencyId, toCurrencyId, date])
+  @@index([fromCurrencyId, toCurrencyId])
+  @@index([date(sort: Desc)])
+  @@map("exchange_rates")
 }

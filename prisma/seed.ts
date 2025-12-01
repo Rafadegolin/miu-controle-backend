@@ -3,14 +3,46 @@ import { PrismaClient, CategoryType } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Iniciando seed das categorias...\n');
+  console.log('🌱 Iniciando seed do banco de dados...\n');
+
+  // ==================== MOEDAS ====================
+  console.log('💱 Criando moedas...');
+
+  const currencies = [
+    { code: 'BRL', name: 'Real Brasileiro', symbol: 'R$' },
+    { code: 'USD', name: 'Dólar Americano', symbol: '$' },
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'GBP', name: 'Libra Esterlina', symbol: '£' },
+    { code: 'JPY', name: 'Iene Japonês', symbol: '¥' },
+    { code: 'CAD', name: 'Dólar Canadense', symbol: 'C$' },
+    { code: 'AUD', name: 'Dólar Australiano', symbol: 'A$' },
+    { code: 'CHF', name: 'Franco Suíço', symbol: 'CHF' },
+    { code: 'CNY', name: 'Yuan Chinês', symbol: '¥' },
+    { code: 'ARS', name: 'Peso Argentino', symbol: '$' },
+  ];
+
+  for (const currency of currencies) {
+    await prisma.currency.upsert({
+      where: { code: currency.code },
+      update: {},
+      create: currency,
+    });
+    console.log(
+      `✅ ${currency.symbol} ${currency.name} (${currency.code}) criada!`,
+    );
+  }
+
+  console.log(`\n💱 ${currencies.length} moedas criadas!\n`);
+
+  // ==================== CATEGORIAS ====================
+  console.log('📁 Criando categorias...');
 
   // Limpar categorias existentes (opcional, cuidado em produção!)
   await prisma.category.deleteMany({
     where: { isSystem: true },
   });
 
-  // ==================== CATEGORIAS DE DESPESAS ====================
+  // CATEGORIAS DE DESPESAS
   const expenseCategories = [
     {
       id: 'cat-alimentacao',
@@ -110,7 +142,7 @@ async function main() {
     },
   ];
 
-  // ==================== CATEGORIAS DE RECEITAS ====================
+  // CATEGORIAS DE RECEITAS
   const incomeCategories = [
     {
       id: 'cat-salario',
@@ -188,9 +220,9 @@ async function main() {
     console.log(`✅ ${category.icon} ${category.name} criada!`);
   }
 
-  console.log(
-    `\n🎉 Seed concluído! ${allCategories.length} categorias criadas.\n`,
-  );
+  console.log(`\n📁 ${allCategories.length} categorias criadas!\n`);
+
+  console.log('🎉 Seed concluído com sucesso!\n');
 }
 
 main()
