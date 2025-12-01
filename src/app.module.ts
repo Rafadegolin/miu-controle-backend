@@ -12,6 +12,7 @@ import { UploadModule } from './upload/upload.module';
 import { EmailModule } from './email/email.module';
 import { ExportModule } from './export/export.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { RecurringTransactionsModule } from './recurring-transactions/recurring-transactions.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     EmailModule,
     ExportModule,
     NotificationsModule,
+    RecurringTransactionsModule,
   ],
 })
 export class AppModule {}

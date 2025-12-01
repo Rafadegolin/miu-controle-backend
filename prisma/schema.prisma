@@ -35,6 +35,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
   notifications     Notification[]
+  recurringTransactions RecurringTransaction[]
 
   @@map("users")
 }
@@ -65,6 +66,8 @@ model Account {
 
   transactions            Transaction[]
 
+  recurringTransactions RecurringTransaction[]
+
   @@index([userId, isActive])
   @@map("accounts")
 }
@@ -94,6 +97,8 @@ model Category {
   transactions      Transaction[]
   budgets           Budget[]
   rules             CategorizationRule[]
+
+  recurringTransactions RecurringTransaction[]
 
   @@index([userId, type])
   @@map("categories")
@@ -133,6 +138,9 @@ model Transaction {
 
   goalContributions GoalContribution[]
   notificationLog   NotificationLog?
+
+  recurringTransactionId String?              @map("recurring_transaction_id")
+  recurringTransaction   RecurringTransaction? @relation("RecurringSource", fields: [recurringTransactionId], references: [id], onDelete: SetNull)
 
   @@index([userId, date(sort: Desc)])
   @@index([accountId])
@@ -380,4 +388,45 @@ enum NotificationType {
   GOAL_MILESTONE     // Meta atingiu milestone (25%, 50%, 75%)
   BILL_DUE           // Conta a vencer
   SYSTEM             // Notificação do sistema
+}
+
+model RecurringTransaction {
+  id                String              @id @default(uuid())
+  userId            String              @map("user_id")
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId         String              @map("account_id")
+  account           Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  categoryId        String?             @map("category_id")
+  category          Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  type              TransactionType
+  amount            Decimal             @db.Decimal(15, 2)
+  description       String
+  merchant          String?
+  frequency         RecurrenceFrequency
+  interval          Int                 @default(1) // A cada X dias/semanas/meses
+  dayOfMonth        Int?                @map("day_of_month") // Dia do mês (1-31) para MONTHLY/YEARLY
+  dayOfWeek         Int?                @map("day_of_week")  // Dia da semana (0-6, 0=Domingo) para WEEKLY
+  startDate         DateTime            @map("start_date")
+  endDate           DateTime?           @map("end_date") // Null = sem data final
+  lastProcessedDate DateTime?           @map("last_processed_date") // Última vez que gerou transação
+  nextOccurrence    DateTime            @map("next_occurrence") // Próxima data de ocorrência
+  isActive          Boolean             @default(true) @map("is_active")
+  autoCreate        Boolean             @default(true) @map("auto_create") // Gerar automaticamente ou notificar
+  tags              String[]
+  notes             String?
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  generatedTransactions Transaction[] @relation("RecurringSource")
+
+  @@index([userId, isActive, nextOccurrence])
+  @@index([nextOccurrence, isActive])
+  @@map("recurring_transactions")
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
 }
