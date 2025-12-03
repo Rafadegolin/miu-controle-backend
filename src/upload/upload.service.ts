@@ -35,9 +35,46 @@ export class UploadService {
   }
 
   /**
+   * Valida e faz upload de imagem de meta
+   */
+  async uploadGoalImage(
+    file: Express.Multer.File,
+    userId: string,
+    goalId: string,
+  ): Promise<{ url: string; key: string; mimeType: string; size: number }> {
+    // Validar tipo de arquivo
+    if (!this.ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException('Formato inválido. Use: JPG, PNG ou WEBP');
+    }
+
+    // Validar tamanho
+    if (file.size > this.MAX_FILE_SIZE) {
+      throw new BadRequestException('Arquivo muito grande. Máximo: 5MB');
+    }
+
+    // Upload no MinIO com path organizado
+    const path = `goals/${userId}/${goalId}`;
+    const url = await this.minioService.uploadFile(file, path);
+
+    return {
+      url,
+      key: `${path}/${file.originalname}`,
+      mimeType: file.mimetype,
+      size: file.size,
+    };
+  }
+
+  /**
    * Deleta avatar antigo
    */
   async deleteAvatar(avatarUrl: string): Promise<void> {
     return this.minioService.deleteFile(avatarUrl);
+  }
+
+  /**
+   * Deleta imagem de meta
+   */
+  async deleteGoalImage(imageKey: string): Promise<void> {
+    return this.minioService.deleteFile(imageKey);
   }
 }

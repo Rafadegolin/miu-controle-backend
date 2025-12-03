@@ -204,6 +204,16 @@ model Goal {
   icon          String?
   priority      Int           @default(3)
   status        GoalStatus    @default(ACTIVE)
+  
+  // 🆕 CAMPOS DE IMAGEM
+  imageUrl      String?       @map("image_url")
+  imageKey      String?       @map("image_key")
+  imageMimeType String?       @map("image_mime_type")
+  imageSize     Int?          @map("image_size")
+  
+  // 🆕 LINKS DE COMPRA (JSON Array)
+  purchaseLinks Json?         @map("purchase_links")
+  
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
   completedAt   DateTime?     @map("completed_at")

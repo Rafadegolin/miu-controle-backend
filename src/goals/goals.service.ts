@@ -8,8 +8,22 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateGoalDto } from './dto/create-goal.dto';
 import { UpdateGoalDto } from './dto/update-goal.dto';
 import { ContributeGoalDto } from './dto/contribute-goal.dto';
-import { GoalStatus } from '@prisma/client';
+import { AddPurchaseLinkDto } from './dto/add-purchase-link.dto';
+import { UpdatePurchaseLinkDto } from './dto/update-purchase-link.dto';
+import { GoalStatus, Prisma } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { v4 as uuidv4 } from 'uuid';
+
+export interface PurchaseLink {
+  id: string;
+  title: string;
+  url: string;
+  price?: number;
+  currency?: string;
+  note?: string;
+  addedAt: string;
+  updatedAt?: string;
+}
 
 @Injectable()
 export class GoalsService {
@@ -361,5 +375,178 @@ export class GoalsService {
     const now = new Date();
     const diff = new Date(targetDate).getTime() - now.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  // ==================== GERENCIAMENTO DE IMAGEM ====================
+
+  /**
+   * Atualizar informações da imagem da meta
+   */
+  async updateImage(
+    goalId: string,
+    data: {
+      imageUrl: string | null;
+      imageKey: string | null;
+      imageMimeType?: string | null;
+      imageSize?: number | null;
+    },
+  ) {
+    return this.prisma.goal.update({
+      where: { id: goalId },
+      data,
+    });
+  }
+
+  // ==================== GERENCIAMENTO DE LINKS ====================
+
+  /**
+   * Adicionar link de compra
+   */
+  async addPurchaseLink(
+    goalId: string,
+    userId: string,
+    dto: AddPurchaseLinkDto,
+  ) {
+    const goal = await this.findOne(goalId, userId);
+
+    const currentLinks = Array.isArray(goal.purchaseLinks)
+      ? (goal.purchaseLinks as unknown as PurchaseLink[])
+      : [];
+
+    // Validar máximo de links (10 por meta)
+    if (currentLinks.length >= 10) {
+      throw new BadRequestException('Máximo de 10 links por meta');
+    }
+
+    const newLink: PurchaseLink = {
+      id: uuidv4(),
+      title: dto.title,
+      url: dto.url,
+      price: dto.price,
+      currency: dto.currency || 'BRL',
+      note: dto.note,
+      addedAt: new Date().toISOString(),
+    };
+
+    const updatedLinks = [...currentLinks, newLink];
+
+    return this.prisma.goal.update({
+      where: { id: goalId },
+      data: {
+        purchaseLinks: updatedLinks as unknown as Prisma.InputJsonValue,
+      },
+      include: {
+        _count: {
+          select: { contributions: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Atualizar link de compra
+   */
+  async updatePurchaseLink(
+    goalId: string,
+    linkId: string,
+    userId: string,
+    dto: UpdatePurchaseLinkDto,
+  ) {
+    const goal = await this.findOne(goalId, userId);
+
+    const currentLinks = Array.isArray(goal.purchaseLinks)
+      ? (goal.purchaseLinks as unknown as PurchaseLink[])
+      : [];
+    const linkIndex = currentLinks.findIndex((link) => link.id === linkId);
+
+    if (linkIndex === -1) {
+      throw new NotFoundException('Link não encontrado');
+    }
+
+    currentLinks[linkIndex] = {
+      ...currentLinks[linkIndex],
+      ...dto,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return this.prisma.goal.update({
+      where: { id: goalId },
+      data: {
+        purchaseLinks: currentLinks as unknown as Prisma.InputJsonValue,
+      },
+      include: {
+        _count: {
+          select: { contributions: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Deletar link de compra
+   */
+  async deletePurchaseLink(goalId: string, linkId: string, userId: string) {
+    const goal = await this.findOne(goalId, userId);
+
+    const currentLinks = Array.isArray(goal.purchaseLinks)
+      ? (goal.purchaseLinks as unknown as PurchaseLink[])
+      : [];
+    const updatedLinks = currentLinks.filter((link) => link.id !== linkId);
+
+    if (currentLinks.length === updatedLinks.length) {
+      throw new NotFoundException('Link não encontrado');
+    }
+
+    return this.prisma.goal.update({
+      where: { id: goalId },
+      data: {
+        purchaseLinks: updatedLinks as unknown as Prisma.InputJsonValue,
+      },
+      include: {
+        _count: {
+          select: { contributions: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Calcular total de preços dos links
+   */
+  async getTotalPurchaseLinksPrice(
+    goalId: string,
+    userId: string,
+  ): Promise<{
+    total: number;
+    totalBRL: number;
+    byCurrenty: Record<string, number>;
+    links: PurchaseLink[];
+  }> {
+    const goal = await this.findOne(goalId, userId);
+    const links = Array.isArray(goal.purchaseLinks)
+      ? (goal.purchaseLinks as unknown as PurchaseLink[])
+      : [];
+
+    const byCurrency: Record<string, number> = {};
+    let totalBRL = 0;
+
+    links.forEach((link) => {
+      if (link.price) {
+        const currency = link.currency || 'BRL';
+        byCurrency[currency] = (byCurrency[currency] || 0) + link.price;
+
+        // Para MVP, assumir BRL (depois integrar com exchange rates)
+        if (currency === 'BRL') {
+          totalBRL += link.price;
+        }
+      }
+    });
+
+    return {
+      total: links.length,
+      totalBRL,
+      byCurrenty: byCurrency,
+      links,
+    };
   }
 }
