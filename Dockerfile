@@ -1,10 +1,7 @@
 ###################
-# BUILD FOR LOCAL DEVELOPMENT
+# BUILD
 ###################
-FROM node:18-alpine AS development
-
-# Adicionar bibliotecas necessárias + netcat
-RUN apk add --no-cache libc6-compat netcat-openbsd
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
@@ -12,7 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Instalar dependências
+# Instalar todas as dependências (incluindo devDependencies para build)
 RUN npm ci
 
 # Copiar código fonte
@@ -21,53 +18,35 @@ COPY . .
 # Gerar Prisma Client
 RUN npx prisma generate
 
-# Usuário não-root
-USER node
-
-###################
-# BUILD FOR PRODUCTION
-###################
-FROM node:18-alpine AS build
-
-WORKDIR /app
-
-COPY package*.json ./
-COPY prisma ./prisma/
-
-# Instalar dependências (incluindo devDependencies para build)
-RUN npm ci
-
-COPY . .
-
-# Gerar Prisma Client
-RUN npx prisma generate
-
-# Compilar aplicação
+# Compilar aplicação TypeScript -> JavaScript
 RUN npm run build
-
-# Remover devDependencies
-RUN npm ci --only=production && npm cache clean --force
 
 ###################
 # PRODUCTION
 ###################
-FROM node:18-alpine AS production
+FROM node:18-alpine
 
-# Adicionar netcat para healthcheck
+# Adicionar netcat para healthcheck do PostgreSQL
 RUN apk add --no-cache netcat-openbsd
 
 WORKDIR /app
 
-# Copiar node_modules otimizado
-COPY --from=build /app/node_modules ./node_modules
+# Copiar package*.json
+COPY package*.json ./
 
-# Copiar código compilado
-COPY --from=build /app/dist ./dist
+# Instalar apenas dependências de produção
+RUN npm ci --only=production && npm cache clean --force
 
-# Copiar Prisma
-COPY --from=build /app/prisma ./prisma
+# Copiar Prisma schema
+COPY prisma ./prisma
 
-# Copiar entrypoint
+# ✅ GERAR Prisma Client no stage de produção (mais seguro)
+RUN npx prisma generate
+
+# Copiar código compilado do stage anterior
+COPY --from=builder /app/dist ./dist
+
+# Copiar entrypoint script
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
@@ -77,5 +56,5 @@ ENV PORT=3001
 
 EXPOSE 3001
 
-# Usar entrypoint para migrations
+# Usar entrypoint para aguardar PostgreSQL e executar migrations
 ENTRYPOINT ["./docker-entrypoint.sh"]
