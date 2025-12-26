@@ -3,6 +3,9 @@
 ###################
 FROM node:20-alpine AS builder
 
+# Instalar dependências necessárias (OpenSSL 1.1 para Prisma)
+RUN apk add --no-cache openssl1.1-compat
+
 WORKDIR /app
 
 COPY package*.json ./
@@ -26,7 +29,8 @@ RUN echo "=== Conteudo de dist ===" && ls -la /app/dist || echo "ERRO: dist nao 
 ###################
 FROM node:20-alpine AS production
 
-RUN apk add --no-cache netcat-openbsd
+# Instalar netcat para healthcheck e OpenSSL 1.1 para Prisma
+RUN apk add --no-cache netcat-openbsd openssl1.1-compat
 
 WORKDIR /app
 
