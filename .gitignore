@@ -39,6 +39,10 @@ lerna-debug.log*
 .env.local
 .env.development
 .env.production
+.env.*.local
+
+# Docker
+docker-compose*.yml
 
 # Prisma
 prisma/migrations/*_backup/

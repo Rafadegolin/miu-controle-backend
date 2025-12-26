@@ -7,6 +7,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 **API REST completa para controle financeiro pessoal com autenticação JWT, analytics avançado e sistema de categorização inteligente.**
 
@@ -42,9 +43,12 @@ A maioria das pessoas desiste de controlar suas finanças porque registrar cada 
 - ✅ **Validações Robustas** com class-validator
 - 📖 **Documentação Swagger** automática e interativa
 - ⚡ **Atualização automática de saldo** ao criar/editar/deletar transações
+- 🐳 **Docker Multi-stage** para deploy otimizado (<300MB)
+- 🤖 **CI/CD Automático** via GitHub Actions
 
 ### 🔜 Roadmap
 
+- [ ] **Cache com Redis** - Performance e rate limiting
 - [ ] **Orçamentos** - Definir limites mensais por categoria
 - [ ] **Objetivos (Potes Virtuais)** - Guardar dinheiro para metas específicas
 - [ ] **Categorização Automática** - IA aprende seus padrões de gasto
@@ -65,6 +69,7 @@ A maioria das pessoas desiste de controlar suas finanças porque registrar cada 
 | **JWT**             | -      | Autenticação stateless        |
 | **class-validator** | -      | Validação de DTOs             |
 | **Swagger**         | -      | Documentação OpenAPI          |
+| **Docker**          | -      | Containerização               |
 
 ---
 
@@ -72,9 +77,10 @@ A maioria das pessoas desiste de controlar suas finanças porque registrar cada 
 
 Antes de começar, você precisará ter instalado:
 
-- [Node.js](https://nodejs.org/) 20 ou superior
+- [Node.js](https://nodejs.org/) 18 ou superior
 - [PostgreSQL](https://www.postgresql.org/download/) 15 ou superior
 - npm ou yarn
+- (Opcional) [Docker](https://www.docker.com/) para deploy
 
 ---
 
@@ -85,13 +91,11 @@ Antes de começar, você precisará ter instalado:
 git clone https://github.com/Rafadegolin/miu-controle-backend.git
 cd miu-controle-backend
 
-text
 
 ### 2. Instale as dependências
 
 npm install
 
-text
 
 ### 3. Configure as variáveis de ambiente
 
@@ -99,12 +103,15 @@ Copie o arquivo de exemplo:
 
 cp .env.example .env
 
-text
 
 Edite o `.env` com suas configurações:
 
 Database
-DATABASE_URL="postgresql://usuario:senha@localhost:5432/miucontrole?schema=public"
+DATABASE_URL="postgresql://usuario:senha@localhost:5432/miu_controle?schema=public"
+
+Redis (quando implementar cache)
+REDIS_HOST=localhost
+REDIS_PORT=6379
 
 JWT Secrets (MUDE ISSO EM PRODUÇÃO!)
 JWT_SECRET="seu_jwt_secret_super_seguro_MUDE_ISSO"
@@ -119,22 +126,31 @@ NODE_ENV=development
 Frontend (CORS)
 FRONTEND_URL="http://localhost:3000"
 
-text
+MinIO/S3 (Upload de avatares)
+MINIO_ENDPOINT=seu-vps-ip-ou-dominio
+MINIO_PORT=9000
+MINIO_USE_SSL=false
+MINIO_ACCESS_KEY=sua_access_key
+MINIO_SECRET_KEY=sua_secret_key
+MINIO_BUCKET_NAME=avatar-user
+MINIO_PUBLIC_URL=http://seu-vps-ip-ou-dominio:9000
+
+Email (Resend)
+EMAIL_FROM="Miu Controle noreply@seudominio.com"
+RESEND_API_KEY=re_exemplo_chave_resend_aqui
+
 
 ### 4. Execute as migrations do Prisma
 
-npm run prisma:migrate
+npx prisma migrate dev
 
-text
 
 ### 5. Popule as categorias padrão
 
-npm run prisma:seed
+npx prisma db seed
 
-text
 
 Isso criará 19 categorias com cores e ícones:
-
 - 🍽️ Alimentação, 🚗 Transporte, 🏠 Moradia, 🏥 Saúde, etc.
 
 ### 6. Inicie o servidor
@@ -146,7 +162,6 @@ Produção
 npm run build
 npm run start:prod
 
-text
 
 ✅ A API estará rodando em `http://localhost:3001`
 
@@ -158,7 +173,7 @@ text
 
 Após iniciar o servidor, acesse:
 
-👉 [**http://localhost:3001/api/docs**](http://localhost:3001/api/docs)
+👉 [[**http://localhost:3001/api**](http://localhost:3001/api)](http://localhost:3001/api)
 
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=flat&logo=swagger&logoColor=black)
 
@@ -197,24 +212,24 @@ Após iniciar o servidor, acesse:
 
 ### Exemplo de Requisição
 
-1. Fazer login
-   curl -X POST http://localhost:3001/auth/login
-   -H "Content-Type: application/json"
-   -d '{"email":"seu@email.com","password":"SuaSenha@123"}'
+**1. Fazer login**
+curl -X POST http://localhost:3001/auth/login
+-H "Content-Type: application/json"
+-d '{"email":"seu@email.com","password":"SuaSenha@123"}'
 
-2. Criar transação (com token)
-   curl -X POST http://localhost:3001/transactions
-   -H "Content-Type: application/json"
-   -H "Authorization: Bearer SEU_TOKEN_AQUI"
-   -d '{
-   "accountId": "uuid-da-conta",
-   "categoryId": "cat-alimentacao",
-   "type": "EXPENSE",
-   "amount": 45.90,
-   "description": "Almoço"
-   }'
 
-text
+**2. Criar transação (com token)**
+curl -X POST http://localhost:3001/transactions
+-H "Content-Type: application/json"
+-H "Authorization: Bearer SEU_TOKEN_AQUI"
+-d '{
+"accountId": "uuid-da-conta",
+"categoryId": "cat-alimentacao",
+"type": "EXPENSE",
+"amount": 45.90,
+"description": "Almoço"
+}'
+
 
 ---
 
@@ -231,7 +246,6 @@ users (Usuários)
 ├── refresh_tokens (1:N) # Tokens de refresh
 └── notification_logs (1:N) # Histórico de notificações
 
-text
 
 ### Principais Tabelas
 
@@ -257,7 +271,6 @@ npm run test:e2e
 Coverage
 npm run test:cov
 
-text
 
 ---
 
@@ -270,7 +283,6 @@ npm run prisma:seed # Popular categorias padrão
 npm run prisma:migrate # Criar/aplicar migrations
 npm run prisma:generate # Regenerar Prisma Client
 
-text
 
 ### Desenvolvimento
 
@@ -279,44 +291,152 @@ npm run start:debug # Modo debug
 npm run lint # ESLint
 npm run format # Prettier
 
-text
 
 ### Build
 
 npm run build # Compilar para produção
 npm run start:prod # Rodar produção
 
-text
 
 ---
 
-## 📦 Deploy
+## 🐳 Docker e Deploy
 
-### Opção 1: VPS (Hostinger, DigitalOcean, AWS EC2)
+### Desenvolvimento Local (sem Docker)
+
+Para desenvolvimento rápido, rode diretamente com Node.js:
+
+npm install
+npx prisma migrate dev
+npm run start:dev
+
+
+### Desenvolvimento com Docker (opcional)
+
+Se quiser rodar Postgres/Redis localmente com Docker:
+
+Subir apenas banco e cache
+docker compose up postgres redis -d
+
+Rodar app normalmente
+npm run start:dev
+
+
+### Build da Imagem Docker
+
+Build para produção
+docker build -t miu-controle-backend:latest --target production .
+
+Verificar tamanho (deve ser <300MB)
+docker images miu-controle-backend
+
+Testar localmente
+docker run -p 3001:3001 --env-file .env miu-controle-backend:latest
+
+
+---
+
+## 🚀 Deploy em Produção
+
+### CI/CD Automático
+
+Este projeto usa **GitHub Actions** para build e deploy automático:
+
+1. ✅ A cada push na `main`, builda a imagem Docker
+2. ✅ Otimiza para produção (multi-stage build < 300MB)
+3. ✅ Publica no GitHub Container Registry
+
+**Imagem publicada:**
+ghcr.io/rafadegolin/miu-controle-backend:latest
+
+
+### Deploy no Easypanel
+
+#### 1. Criar App Service
+
+- **Name:** `miu-controle-backend`
+- **Source:** Docker Image  
+- **Image:** `ghcr.io/rafadegolin/miu-controle-backend:latest`
+- **Port:** 3001
+
+#### 2. Configurar Environment Variables
+
+NODE_ENV=production
+PORT=3001
+
+Database
+DATABASE_URL=postgresql://user:pass@host:5432/db?schema=public
+
+Redis (quando implementar)
+REDIS_HOST=redis-service-name
+REDIS_PORT=6379
+
+JWT
+JWT_SECRET=seu-secret-super-seguro-NUNCA-COMMITE
+JWT_EXPIRES_IN=15m
+REFRESH_TOKEN_SECRET=seu-refresh-secret-NUNCA-COMMITE
+REFRESH_TOKEN_EXPIRES_IN=7d
+
+Frontend (CORS)
+FRONTEND_URL=https://seu-frontend.com
+
+MinIO/S3
+MINIO_ENDPOINT=seu-minio-host
+MINIO_PORT=443
+MINIO_USE_SSL=true
+MINIO_ACCESS_KEY=sua-access-key
+MINIO_SECRET_KEY=sua-secret-key
+MINIO_BUCKET_NAME=avatar-user
+MINIO_PUBLIC_URL=https://seu-minio-public-url
+
+Email (Resend)
+EMAIL_FROM="Miu Controle noreply@seudominio.com"
+RESEND_API_KEY=sua-resend-api-key
+
+
+#### 3. Deploy
+
+- Clique em **Deploy**
+- Acompanhe os logs:
+  - ✅ Migrations rodando automaticamente via `docker-entrypoint.sh`
+  - ✅ Aplicação iniciando na porta 3001
+  - ✅ Healthcheck OK
+
+#### 4. Verificar
+
+Testar endpoint
+curl https://seu-backend.easypanel.host/health
+
+Acessar Swagger
+https://seu-backend.easypanel.host/api
+
+
+### Deploy em VPS (Alternativa)
+
+<details>
+<summary>📦 Clique para ver instruções de VPS</summary>
 
 #### 1. Preparar servidor
 
 Atualizar sistema
 sudo apt update && sudo apt upgrade -y
 
-Instalar Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+Instalar Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install -y nodejs
 
 Instalar PostgreSQL
 sudo apt install postgresql postgresql-contrib
 
-text
 
 #### 2. Configurar banco
 
 sudo -u postgres psql
-CREATE DATABASE miucontrole;
+CREATE DATABASE miu_controle;
 CREATE USER miuuser WITH ENCRYPTED PASSWORD 'senha_forte_aqui';
-GRANT ALL PRIVILEGES ON DATABASE miucontrole TO miuuser;
+GRANT ALL PRIVILEGES ON DATABASE miu_controle TO miuuser;
 \q
 
-text
 
 #### 3. Deploy da aplicação
 
@@ -332,8 +452,8 @@ cp .env.example .env
 nano .env # Editar com dados de produção
 
 Migrations
-npm run prisma:migrate
-npm run prisma:seed
+npx prisma migrate deploy
+npx prisma db seed
 
 Build
 npm run build
@@ -344,89 +464,51 @@ pm2 start dist/main.js --name miu-controle-api
 pm2 startup
 pm2 save
 
-text
 
 #### 4. Configurar Nginx (opcional)
 
 server {
 listen 80;
 server_name api.seudominio.com;
-
-text
 location / {
-proxy_pass http://localhost:3001;
-proxy_http_version 1.1;
-proxy_set_header Upgrade $http_upgrade;
-proxy_set_header Connection 'upgrade';
-proxy_set_header Host $host;
-proxy_cache_bypass $http_upgrade;
+    proxy_pass http://localhost:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
 }
 }
 
-text
 
-### Opção 2: Docker
+</details>
 
-**Dockerfile:**
+---
 
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package\*.json ./
-RUN npm ci
-COPY . .
-RUN npx prisma generate
-RUN npm run build
+## 🔧 Troubleshooting
 
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
-COPY package\*.json ./
-EXPOSE 3001
-CMD ["npm", "run", "start:prod"]
+### Build da imagem Docker falhando
 
-text
+Limpar cache do Docker
+docker builder prune -a
 
-**docker-compose.yml:**
+Rebuild sem cache
+docker build --no-cache -t miu-controle-backend .
 
-version: '3.8'
+### Migrations não rodando no Easypanel
 
-services:
-postgres:
-image: postgres:15-alpine
-environment:
-POSTGRES_DB: miucontrole
-POSTGRES_USER: miuuser
-POSTGRES_PASSWORD: ${DB_PASSWORD}
-volumes:
+- ✅ Verificar logs do container
+- ✅ Variável `DATABASE_URL` está correta?
+- ✅ Banco está acessível pelo container?
+- ✅ `docker-entrypoint.sh` tem permissão de execução?
 
-- postgres_data:/var/lib/postgresql/data
-  ports:
-- "5432:5432"
+### Erro de CORS no frontend
 
-api:
-build: .
-environment:
-DATABASE_URL: postgresql://miuuser:${DB_PASSWORD}@postgres:5432/miucontrole
-JWT_SECRET: ${JWT_SECRET}
-REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
-ports:
-
-- "3001:3001"
-  depends_on:
-- postgres
-
-volumes:
-postgres_data:
-
-text
-
-**Executar:**
-
-docker-compose up -d
-
-text
+// main.ts - Verificar configuração
+app.enableCors({
+origin: process.env.FRONTEND_URL,
+credentials: true,
+});
 
 ---
 
@@ -451,8 +533,6 @@ style: Formatação
 refactor: Refatoração
 test: Testes
 chore: Tarefas gerais
-
-text
 
 ---
 
