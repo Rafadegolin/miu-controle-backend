@@ -18,8 +18,15 @@ COPY . .
 # Gerar Prisma Client
 RUN npx prisma generate
 
+# 🐛 DEBUG: Verificar estrutura antes do build
+RUN echo "📂 Estrutura ANTES do build:" && ls -la /app
+
 # Compilar aplicação TypeScript -> JavaScript
 RUN npm run build
+
+# 🐛 DEBUG: Verificar se dist foi criado
+RUN echo "📂 Estrutura DEPOIS do build:" && ls -la /app
+RUN echo "📂 Conteúdo de /app/dist:" && ls -la /app/dist || echo "❌ dist/ NÃO EXISTE!"
 
 ###################
 # PRODUCTION
@@ -40,11 +47,15 @@ RUN npm ci --only=production && npm cache clean --force
 # Copiar Prisma schema
 COPY prisma ./prisma
 
-# ✅ GERAR Prisma Client no stage de produção (mais seguro)
+# Gerar Prisma Client no stage de produção
 RUN npx prisma generate
 
 # Copiar código compilado do stage anterior
 COPY --from=builder /app/dist ./dist
+
+# 🐛 DEBUG: Verificar se dist foi copiado para produção
+RUN echo "📂 Estrutura PRODUÇÃO:" && ls -la /app
+RUN echo "📂 Conteúdo de /app/dist:" && ls -la /app/dist || echo "❌ dist/ NÃO COPIADO!"
 
 # Copiar entrypoint script
 COPY docker-entrypoint.sh ./
