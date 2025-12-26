@@ -46,4 +46,4 @@ fi
 
 # Iniciar aplicação
 echo "🚀 Iniciando aplicação..."
-exec node dist/main.js
+exec node dist/src/main.js
