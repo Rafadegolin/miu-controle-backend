@@ -1,7 +1,7 @@
 ###################
 # BUILD
 ###################
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -24,7 +24,7 @@ RUN echo "=== Conteudo de dist ===" && ls -la /app/dist || echo "ERRO: dist nao 
 ###################
 # PRODUCTION
 ###################
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 RUN apk add --no-cache netcat-openbsd
 

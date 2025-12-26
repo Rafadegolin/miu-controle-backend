@@ -13,3 +13,4 @@ docker-compose*.yml
 coverage
 .DS_Store
 *.log
+/docs
