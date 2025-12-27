@@ -16,6 +16,7 @@ import { RecurringTransactionsModule } from './recurring-transactions/recurring-
 import { CurrenciesModule } from './currencies/currencies.module';
 import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
 import { ReportsModule } from './reports/reports.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ReportsModule } from './reports/reports.module';
     CurrenciesModule,
     ExchangeRatesModule,
     ReportsModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}
