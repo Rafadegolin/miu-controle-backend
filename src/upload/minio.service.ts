@@ -62,8 +62,11 @@ export class MinioService implements OnModuleInit {
         `✅ Política pública aplicada ao bucket "${this.bucketName}"`,
       );
     } catch (error) {
-      this.logger.error('❌ Erro ao configurar bucket MinIO:', error);
-      throw error;
+      this.logger.warn(
+        '⚠️  MinIO não está disponível. O serviço de upload não funcionará até que o MinIO seja configurado.',
+      );
+      this.logger.warn(`Detalhes: ${error.message}`);
+      // NÃO lançar erro para permitir que a aplicação continue funcionando
     }
   }
 
