@@ -17,12 +17,7 @@ COPY . .
 
 RUN npx prisma generate
 
-RUN echo "=== Estrutura ANTES do build ===" && ls -la /app
-
 RUN npm run build
-
-RUN echo "=== Estrutura DEPOIS do build ===" && ls -la /app
-RUN echo "=== Conteudo de dist ===" && ls -la /app/dist || echo "ERRO: dist nao existe"
 
 ###################
 # PRODUCTION
@@ -43,9 +38,6 @@ COPY prisma ./prisma
 RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist
-
-RUN echo "=== Estrutura PRODUCAO ===" && ls -la /app
-RUN echo "=== Conteudo de dist ===" && ls -la /app/dist || echo "ERRO: dist nao copiado"
 
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
