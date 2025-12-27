@@ -8,8 +8,16 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [
+      process.env.FRONTEND_URL,
+       'http://localhost:3000',
+       'https://miu-controle-frontend-8ssjoft4s-rafael-degolins-projects.vercel.app',
+       'https://miucontrole.com.br',
+        'https://www.miucontrole.com.br',
+       ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Validação automática
