@@ -220,6 +220,68 @@ Configurável via variável de ambiente `REQUEST_TIMEOUT_MS` (padrão: 30000ms).
 
 ---
 
+## 🚦 Rate Limiting
+
+A API implementa proteção contra abuso com limites configurados por endpoint usando `@nestjs/throttler`.
+
+### Limites Globais
+
+Por padrão, todos os endpoints respeitam os seguintes limites cumulativos:
+
+- **Short**: 10 requisições por segundo
+- **Medium**: 100 requisições por minuto  
+- **Long**: 500 requisições por 15 minutos
+
+### Limites por Endpoint
+
+Endpoints críticos possuem limites customizados mais rigorosos:
+
+| Endpoint | Limite | Motivo |
+|----------|--------|--------|
+| `POST /auth/login` | 5 req/min | Previne brute force |
+| `POST /auth/register` | 3 req/hora | Previne spam de contas |
+| `POST /auth/forgot-password` | 3 req/hora | Previne spam de emails |
+| `POST /auth/resend-verification` | 3 req/hora | Previne spam de emails |
+| `POST /transactions` | 60 req/min | Previne criação em massa |
+| `GET /export/csv` | 10 req/hora | Operação custosa |
+| `GET /export/excel` | 10 req/hora | Operação custosa |
+| `GET /export/pdf` | 10 req/hora | Operação custosa |
+| `GET /health` | Sem limite | Monitoramento |
+| `POST /auth/verify-email` | Sem limite | Validação por token único |
+
+### Headers de Rate Limit
+
+Todas as requisições incluem headers informativos:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1640995200
+```
+
+### Resposta 429 (Too Many Requests)
+
+Quando o limite é excedido:
+
+```json
+{
+  "statusCode": 429,
+  "message": "Limite de requisições excedido. Tente novamente mais tarde.",
+  "error": "Too Many Requests",
+  "retryAfter": "60s"
+}
+```
+
+O header `Retry-After` indica (em segundos) quando você pode tentar novamente.
+
+**Exemplo:**
+```bash
+curl -I http://localhost:3001/auth/login
+# Retry-After: 60
+```
+
+---
+
 ## 📚 Documentação da API
 
 ### Swagger UI (Interativo)

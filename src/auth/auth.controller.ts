@@ -17,6 +17,7 @@ import {
   ApiBearerAuth,
   ApiResponse,
 } from '@nestjs/swagger';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { SessionsService } from './sessions.service';
 import { RegisterDto } from './dto/register.dto';
@@ -39,7 +40,11 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Criar nova conta' })
+  @Throttle({ long: { limit: 3, ttl: 3600000 } }) // 3 req/hora
+  @ApiOperation({ 
+    summary: 'Criar nova conta',
+    description: 'Limite: 3 tentativas por hora'
+  })
   @ApiResponse({ status: 201, description: 'Conta criada com sucesso' })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
   async register(@Body() registerDto: RegisterDto, @Req() req: Request) {
@@ -49,8 +54,12 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 req/min
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Fazer login' })
+  @ApiOperation({ 
+    summary: 'Fazer login',
+    description: 'Limite: 5 tentativas por minuto'
+  })
   @ApiResponse({ status: 200, description: 'Login realizado com sucesso' })
   @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
   async login(@Body() loginDto: LoginDto, @Req() req: Request) {
@@ -68,8 +77,12 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Throttle({ long: { limit: 3, ttl: 3600000 } }) // 3 req/hora
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Solicitar recuperação de senha' })
+  @ApiOperation({ 
+    summary: 'Solicitar recuperação de senha',
+    description: 'Limite: 3 tentativas por hora'
+  })
   @ApiResponse({ status: 200, description: 'Email enviado (se existir)' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
@@ -95,6 +108,7 @@ export class AuthController {
   }
 
   @Post('verify-email')
+  @SkipThrottle() // Sem limite (validado por token único)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verificar email com token' })
   @ApiResponse({ status: 200, description: 'Email verificado com sucesso' })
@@ -105,8 +119,12 @@ export class AuthController {
   }
 
   @Post('resend-verification')
+  @Throttle({ long: { limit: 3, ttl: 3600000 } }) // 3 req/hora
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reenviar email de verificação' })
+  @ApiOperation({ 
+    summary: 'Reenviar email de verificação',
+    description: 'Limite: 3 tentativas por hora'
+  })
   @ApiResponse({ status: 200, description: 'Email reenviado (se existir)' })
   @ApiResponse({ status: 409, description: 'Email já verificado' })
   async resendVerification(

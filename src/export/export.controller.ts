@@ -14,6 +14,7 @@ import {
   ApiResponse,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ExportService } from './export.service';
 import { ExportFiltersDto } from './dto/export-filters.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -27,7 +28,11 @@ export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 
   @Get('csv')
-  @ApiOperation({ summary: 'Exportar transações em CSV' })
+  @Throttle({ long: { limit: 10, ttl: 3600000 } }) // 10 req/hora
+  @ApiOperation({ 
+    summary: 'Exportar transações em CSV',
+    description: 'Limite: 10 exportações por hora'
+  })
   @ApiResponse({ status: 200, description: 'Arquivo CSV gerado' })
   async exportCSV(
     @CurrentUser() user: any,
@@ -44,7 +49,11 @@ export class ExportController {
   }
 
   @Get('excel')
-  @ApiOperation({ summary: 'Exportar transações em Excel' })
+  @Throttle({ long: { limit: 10, ttl: 3600000 } }) // 10 req/hora
+  @ApiOperation({ 
+    summary: 'Exportar transações em Excel',
+    description: 'Limite: 10 exportações por hora'
+  })
   @ApiResponse({ status: 200, description: 'Arquivo Excel gerado' })
   async exportExcel(
     @CurrentUser() user: any,
@@ -64,7 +73,11 @@ export class ExportController {
   }
 
   @Get('pdf')
-  @ApiOperation({ summary: 'Exportar transações em PDF' })
+  @Throttle({ long: { limit: 10, ttl: 3600000 } }) // 10 req/hora
+  @ApiOperation({ 
+    summary: 'Exportar transações em PDF',
+    description: 'Limite: 10 exportações por hora'
+  })
   @ApiResponse({ status: 200, description: 'Arquivo PDF gerado' })
   async exportPDF(
     @CurrentUser() user: any,

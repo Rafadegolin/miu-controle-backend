@@ -15,6 +15,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
@@ -30,7 +31,11 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Criar nova transação' })
+  @Throttle({ medium: { limit: 60, ttl: 60000 } }) // 60 req/min
+  @ApiOperation({ 
+    summary: 'Criar nova transação',
+    description: 'Limite: 60 transações por minuto'
+  })
   create(
     @CurrentUser() user,
     @Body() createTransactionDto: CreateTransactionDto,
