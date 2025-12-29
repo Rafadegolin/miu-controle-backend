@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { ResponseTimeInterceptor } from './common/interceptors/response-time.interceptor';
+import { ThrottlerExceptionFilter } from './common/filters/throttler-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -54,6 +55,9 @@ async function bootstrap() {
     new TimeoutInterceptor(),
     new ResponseTimeInterceptor(),
   );
+
+  // 🚦 Exception filter para rate limiting
+  app.useGlobalFilters(new ThrottlerExceptionFilter());
 
   // Swagger
   const config = new DocumentBuilder()

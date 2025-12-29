@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { AccountsModule } from './accounts/accounts.module';
@@ -42,6 +44,31 @@ import { HealthModule } from './health/health.module';
     ReportsModule,
     DashboardModule,
     HealthModule,
+    // 🚦 Rate Limiting
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,    // 1 segundo
+        limit: 10,    // 10 requisições por segundo
+      },
+      {
+        name: 'medium',
+        ttl: 60000,   // 1 minuto
+        limit: 100,   // 100 requisições por minuto
+      },
+      {
+        name: 'long',
+        ttl: 900000,  // 15 minutos
+        limit: 500,   // 500 requisições por 15 min
+      },
+    ]),
+  ],
+  providers: [
+    // 🚦 ThrottlerGuard global
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

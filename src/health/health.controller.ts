@@ -1,10 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
   @Get()
+  @SkipThrottle() // Health check sem rate limit
   @ApiOperation({ summary: 'Health check da API' })
   @ApiResponse({
     status: 200,
