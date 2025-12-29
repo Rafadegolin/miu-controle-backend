@@ -1,16 +1,38 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReportFiltersDto } from './dto/report-filters.dto';
 import { Prisma } from '@prisma/client';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { CacheService } from '../common/services/cache.service';
 
 @Injectable()
 export class ReportsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private cacheService: CacheService,
+  ) {}
 
   /**
    * Dashboard resumido com KPIs principais
+   * Cache: 5 minutos
    */
   async getDashboard(userId: string, filters: ReportFiltersDto) {
+    const cacheKey = `reports:${userId}:dashboard:${JSON.stringify(filters)}`;
+
+    // Tentar buscar do cache
+    try {
+      const cached = await this.cacheManager.get(cacheKey);
+      if (cached) {
+        this.cacheService.logHit(cacheKey);
+        return cached as any;
+      }
+    } catch (error) {
+      // Se cache falhar, continua para o banco
+    }
+
+    this.cacheService.logMiss(cacheKey);
     const where = this.buildWhereClause(userId, filters);
 
     // Buscar todas as transações do período
@@ -62,7 +84,7 @@ export class ReportsService {
       .filter((t) => t.type === 'EXPENSE')
       .sort((a, b) => Number(b.amount) - Number(a.amount))[0];
 
-    return {
+    const result = {
       summary: {
         totalIncome,
         totalExpense,
@@ -100,6 +122,15 @@ export class ReportsService {
         days,
       },
     };
+
+    // Salvar no cache por 5 minutos (300000ms)
+    try {
+      await this.cacheManager.set(cacheKey, result, 300000);
+    } catch (error) {
+      // Se falhar ao salvar cache, apenas continue
+    }
+
+    return result;
   }
 
   /**

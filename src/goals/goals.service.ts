@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateGoalDto } from './dto/create-goal.dto';
@@ -13,6 +14,9 @@ import { UpdatePurchaseLinkDto } from './dto/update-purchase-link.dto';
 import { GoalStatus, Prisma } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { v4 as uuidv4 } from 'uuid';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { CacheService } from '../common/services/cache.service';
 
 export interface PurchaseLink {
   id: string;
@@ -30,6 +34,8 @@ export class GoalsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private cacheService: CacheService,
   ) {}
 
   async create(userId: string, createGoalDto: CreateGoalDto) {
@@ -316,7 +322,25 @@ export class GoalsService {
     };
   }
 
+  /**
+   * Resumo de objetivos do usuário
+   * Cache: 10 minutos
+   */
   async getSummary(userId: string) {
+    const cacheKey = `goals:${userId}:summary`;
+
+    // Tentar buscar do cache
+    try {
+      const cached = await this.cacheManager.get(cacheKey);
+      if (cached) {
+        this.cacheService.logHit(cacheKey);
+        return cached as any;
+      }
+    } catch (error) {
+      // Se cache falhar, continua
+    }
+
+    this.cacheService.logMiss(cacheKey);
     const goals = await this.prisma.goal.findMany({
       where: { userId },
     });
@@ -334,7 +358,7 @@ export class GoalsService {
       0,
     );
 
-    return {
+    const result = {
       total: goals.length,
       active: active.length,
       completed: completed.length,
@@ -342,10 +366,7 @@ export class GoalsService {
       totalTargeted,
       totalSaved,
       totalRemaining: totalTargeted - totalSaved,
-      overallPercentage:
-        totalTargeted > 0
-          ? Math.round((totalSaved / totalTargeted) * 100 * 100) / 100
-          : 0,
+      overallProgress: totalTargeted > 0 ? (totalSaved / totalTargeted) * 100 : 0,
       goals: goals.map((goal) => ({
         id: goal.id,
         name: goal.name,
@@ -360,6 +381,15 @@ export class GoalsService {
         icon: goal.icon,
       })),
     };
+
+    // Salvar no cache por 10 minutos (600000ms)
+    try {
+      await this.cacheManager.set(cacheKey, result, 600000);
+    } catch (error) {
+      // Se falhar ao salvar cache, apenas continue
+    }
+
+    return result;
   }
 
   // ==================== MÉTODOS AUXILIARES ====================

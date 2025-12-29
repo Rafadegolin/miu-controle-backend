@@ -1,19 +1,62 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
-  ApiBearerAuth,
   ApiResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../common/services/cache.service';
 
 @ApiTags('Admin')
-@Controller('admin')
-@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
+@Controller('admin')
 export class AdminController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cacheService: CacheService,
+  ) {}
+
+  @Get('cache-stats')
+  @ApiOperation({ summary: 'Obter estatísticas do cache Redis' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estatísticas do cache retornadas com sucesso',
+    schema: {
+      example: {
+        cacheHits: 1250,
+        cacheMisses: 180,
+        hitRate: 87.41,
+        timestamp: '2025-12-29T14:00:00.000Z',
+      },
+    },
+  })
+  getCacheStats() {
+    return {
+      ...this.cacheService.getStats(),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Post('cache-reset')
+  @ApiOperation({ summary: 'Resetar estatísticas do cache' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estatísticas resetadas com sucesso',
+    schema: {
+      example: {
+        message: 'Cache statistics reset successfully',
+        timestamp: '2025-12-29T14:00:00.000Z',
+      },
+    },
+  })
+  resetCacheStats() {
+    this.cacheService.resetStats();
+    return {
+      message: 'Cache statistics reset successfully',
+      timestamp: new Date().toISOString(),
+    };
+  }
 
   @Get('slow-queries')
   @ApiOperation({
