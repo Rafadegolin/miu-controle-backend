@@ -282,6 +282,97 @@ curl -I http://localhost:3001/auth/login
 
 ---
 
+## 🏥 Healthcheck e Monitoring
+
+A API implementa healthchecks robustos usando `@nestjs/terminus` para monitoramento e orquestração (Kubernetes).
+
+### Endpoints de Health
+
+| Endpoint | Descrição | Uso |
+|----------|-----------|-----|
+| `GET /health` | Health check completo | Monitoramento geral |
+| `GET /health/live` | Liveness probe | Kubernetes (restart se falhar) |
+| `GET /health/ready` | Readiness probe | Kubernetes (parar tráfego se falhar) |
+| `GET /health/metrics` | Métricas da aplicação | Observabilidade |
+
+### Health Checks Implementados
+
+**GET /health** verifica:
+- ✅ **Database**: Conexão com PostgreSQL (Prisma)
+- ✅ **Memory**: Uso de heap (máx 512MB)
+- ✅ **Disk**: Espaço em disco (mín 10% livre)
+
+**Resposta de exemplo:**
+```json
+{
+  "status": "ok",
+  "info": {
+    "database": { "status": "up" },
+    "memory_heap": { "status": "up" },
+    "storage": { "status": "up" }
+  },
+  "error": {},
+  "details": {
+    "database": { "status": "up" },
+    "memory_heap": { "status": "up" },
+    "storage": { "status": "up" }
+  }
+}
+```
+
+### Kubernetes Configuration
+
+**Liveness Probe** (verifica se pod está vivo):
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 3001
+  initialDelaySeconds: 30
+  periodSeconds: 10
+```
+
+**Readiness Probe** (verifica se pod está pronto):
+```yaml
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 3001
+  initialDelaySeconds: 10
+  periodSeconds: 5
+```
+
+### Métricas
+
+**GET /health/metrics** retorna:
+```json
+{
+  "application": {
+    "name": "Miu Controle API",
+    "version": "1.0.0",
+    "uptime": 12345,
+    "environment": "production"
+  },
+  "database": {
+    "totalUsers": 150,
+    "totalTransactions": 5420,
+    "todayTransactions": 25
+  },
+  "performance": {
+    "totalRequests": 10523,
+    "averageLatency": 45,
+    "memoryUsage": {
+      "rss": 50331648,
+      "heapTotal": 20971520,
+      "heapUsed": 15728640
+    }
+  },
+  "timestamp": "2025-12-28T23:30:00.000Z"
+}
+```
+
+---
+
 ## 📚 Documentação da API
 
 ### Swagger UI (Interativo)
