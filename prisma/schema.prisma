@@ -146,6 +146,10 @@ model Transaction {
   @@index([userId, date(sort: Desc)])
   @@index([accountId])
   @@index([categoryId])
+  @@index([userId, date(sort: Desc), type])
+  @@index([accountId, status, date(sort: Desc)])
+  @@index([categoryId, date(sort: Desc)])
+  @@index([userId, source, createdAt(sort: Desc)])
   @@map("transactions")
 }
 
@@ -182,6 +186,7 @@ model Budget {
 
   @@unique([userId, categoryId, period, startDate])
   @@index([userId, period, startDate])
+  @@index([userId, period, startDate(sort: Desc), endDate(sort: Desc)])
   @@map("budgets")
 }
 
@@ -221,6 +226,7 @@ model Goal {
   contributions GoalContribution[]
 
   @@index([userId, status])
+  @@index([userId, status, createdAt(sort: Desc)])
   @@map("goals")
 }
 

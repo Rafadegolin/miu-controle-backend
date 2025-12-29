@@ -91,6 +91,9 @@ export class TransactionsService {
   }
 
   async findAll(userId: string, filters: FilterTransactionDto) {
+    const take = filters.take || 50; // Default 50
+    const cursor = filters.cursor;
+
     const where: Prisma.TransactionWhereInput = {
       userId,
       ...(filters.type && { type: filters.type }),
@@ -116,10 +119,36 @@ export class TransactionsService {
       }
     }
 
-    return this.prisma.transaction.findMany({
+    // Buscar take + 1 para saber se há mais itens
+    const transactions = await this.prisma.transaction.findMany({
       where,
-      include: {
-        category: true,
+      take: take + 1,
+      ...(cursor && {
+        skip: 1, // Pular o cursor
+        cursor: { id: cursor },
+      }),
+      select: {
+        id: true,
+        amount: true,
+        description: true,
+        merchant: true,
+        date: true,
+        type: true,
+        status: true,
+        tags: true,
+        notes: true,
+        createdAt: true,
+        // Select seletivo para category
+        category: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            icon: true,
+            type: true,
+          },
+        },
+        // Select seletivo para account
         account: {
           select: {
             id: true,
@@ -133,6 +162,17 @@ export class TransactionsService {
         date: 'desc',
       },
     });
+
+    // Verificar se há mais itens
+    const hasMore = transactions.length > take;
+    const items = hasMore ? transactions.slice(0, take) : transactions;
+    const nextCursor = hasMore ? items[items.length - 1].id : null;
+
+    return {
+      items,
+      nextCursor,
+      hasMore,
+    };
   }
 
   async findOne(id: string, userId: string) {

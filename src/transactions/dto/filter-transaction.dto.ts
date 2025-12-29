@@ -6,17 +6,18 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { TransactionType, TransactionStatus } from '@prisma/client'; // <-- REMOVER CategoryType
+import { TransactionType, TransactionStatus } from '@prisma/client';
+import { CursorPaginationDto } from '../../common/dto/cursor-pagination.dto';
 
-export class FilterTransactionDto {
+export class FilterTransactionDto extends CursorPaginationDto {
   @ApiPropertyOptional({
-    enum: TransactionType, // <-- USAR TransactionType
+    enum: TransactionType,
     example: 'EXPENSE',
     description: 'Filtrar por tipo de transação',
   })
   @IsOptional()
-  @IsEnum(TransactionType) // <-- USAR TransactionType
-  type?: TransactionType; // <-- USAR TransactionType
+  @IsEnum(TransactionType)
+  type?: TransactionType;
 
   @ApiPropertyOptional({
     example: 'uuid-da-categoria',
