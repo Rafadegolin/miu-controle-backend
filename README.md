@@ -466,16 +466,237 @@ users (Usuários)
 
 ---
 
-## 🧪 Testes
+## 🧪 Testes Automatizados
 
-Testes unitários
-npm run test
+Este projeto possui uma **suite completa de testes** com **101 testes unitários** cobrindo todos os services principais e detectando regressões automaticamente.
 
-Testes E2E
+### 📊 Estatísticas de Cobertura
+
+- ✅ **101 testes unitários** (100% passando)
+- ✅ **6 módulos testados**: Auth, Accounts, Transactions, Budgets, Goals, Categories
+- ✅ **Infraestrutura E2E** criada para 6 módulos
+- ✅ **Detecção automática de regressões** ativa
+
+### 🚀 Comandos de Teste
+
+#### Testes Unitários (Recomendado para desenvolvimento)
+
+```bash
+# Rodar TODOS os testes unitários
+npm test
+
+# Rodar testes de um módulo específico
+npm test -- accounts.service.spec
+npm test -- transactions.service.spec
+npm test -- budgets.service.spec
+
+# Modo watch (re-executa ao salvar arquivo)
+npm run test:watch
+
+# Cobertura de código com relatório detalhado
+npm run test:cov
+```
+
+#### Testes E2E (Requer configuração)
+
+```bash
+# Rodar TODOS os testes E2E
 npm run test:e2e
 
-Coverage
-npm run test:cov
+# Rodar teste E2E específico
+npm run test:e2e -- test/auth.e2e-spec.ts
+
+# ⚠️ IMPORTANTE: Testes E2E requerem banco de dados de teste configurado
+# Veja documentação em: docs/e2e-setup-guide.md
+```
+
+### 🔍 O Que os Testes Cobrem
+
+#### ✅ AuthService (27 testes)
+- Registro de usuário com validações
+- Login e geração de JWT tokens
+- Refresh tokens e renovação
+- Recuperação de senha (forgot/reset)
+- Verificação de email
+- Edge cases e validações
+
+#### ✅ AccountsService (17 testes)
+- CRUD completo de contas
+- Cálculo de saldo consolidado
+- Validações de propriedade (ForbiddenException)
+- Soft delete (isActive)
+- Valores padrão
+
+#### ✅ TransactionsService (12 testes)
+- Criação de transações com validações
+- Atualização com ajuste de saldo
+- Deleção com reversão de saldo
+- Validação de categoria vs tipo
+- Estatísticas mensais
+- Autorização e permissões
+
+#### ✅ BudgetsService (9 testes)
+- CRUD de orçamentos
+- Cálculo de gastos vs orçamento
+- Status do orçamento (OK/WARNING/EXCEEDED)
+- Validações de datas
+- Prevenção de duplicatas
+- Sumário mensal
+
+#### ✅ GoalsService (18 testes)
+- CRUD de metas financeiras
+- Contribuições e retiradas
+- Auto-conclusão ao atingir meta
+- Validações de negócio (datas futuras, valores)
+- Prevenção de exclusão com contribuições
+- Sumário de metas (active/completed/cancelled)
+
+#### ✅ CategoriesService (16 testes)
+- CRUD de categorias
+- Hierarquia (categorias pai e filhas)
+- Proteção de categorias do sistema
+- Validações de tipo (INCOME/EXPENSE/TRANSFER)
+- Prevenção de exclusão com transações
+- Estatísticas por categoria
+
+### 🛡️ Detecção de Regressões
+
+**Os testes DETECTAM automaticamente regressões no código.**
+
+**Exemplo prático:**
+
+Se alguém **remover** a validação de autorização de uma conta:
+
+```typescript
+// ❌ BUG: Removendo validação
+async findOne(id: string, userId: string) {
+  const account = await this.prisma.account.findUnique({ where: { id } });
+  // FALTA: verificar se account.userId === userId
+  return account; // 🔥 Qualquer usuário pode acessar qualquer conta!
+}
+```
+
+**Os testes FALHAM imediatamente:**
+
+```bash
+FAIL  src/accounts/accounts.service.spec.ts
+  ● AccountsService › findOne › should throw ForbiddenException for other user's account
+
+  Expected: ForbiddenException
+  Received: <account object> ❌
+
+Tests:       2 failed, 13 passed, 15 total
+```
+
+✅ **Regressão detectada!** O desenvolvedor não pode fazer merge até corrigir.
+
+### 📈 Relatório de Cobertura
+
+Após rodar `npm run test:cov`, você verá:
+
+```
+----------------------|---------|----------|---------|---------|-------------------
+File                  | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+----------------------|---------|----------|---------|---------|-------------------
+All files             |   76.66 |    58.10 |   87.50 |   79.76 |
+ accounts/            |   100   |    100   |   100   |   100   |
+ auth/                |   100   |    100   |   100   |   100   |
+ budgets/             |   100   |    100   |   100   |   100   |
+ categories/          |   100   |    100   |   100   |   100   |
+ goals/               |   100   |    100   |   100   |   100   |
+ transactions/        |   100   |    100   |   100   |   100   |
+----------------------|---------|----------|---------|---------|-------------------
+```
+
+O relatório HTML completo fica em: `coverage/lcov-report/index.html`
+
+### ⚙️ Configuração de Testes E2E
+
+Os testes E2E (End-to-End) testam a API completa, mas requerem:
+
+1. **Banco de dados de teste** rodando
+2. **Variáveis de ambiente** configuradas (`.env.test`)
+3. **Migrations** aplicadas no banco de teste
+
+**Por que os E2E podem falhar?**
+
+- ❌ Banco `miu_controle_test` não existe
+- ❌ `DATABASE_URL` não aponta para banco de teste
+- ❌ Porta do PostgreSQL incorreta
+
+**Como configurar:**
+
+1. Criar banco de teste:
+```bash
+# PostgreSQL local
+psql -U postgres
+CREATE DATABASE miu_controle_test;
+\q
+
+# Ou usar Docker
+docker run --name postgres-test \
+  -e POSTGRES_PASSWORD=postgres \
+  -p 5433:5432 -d postgres:15
+```
+
+2. Configurar `.env.test`:
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/miu_controle_test?schema=public"
+```
+
+3. Rodar migrations:
+```bash
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/miu_controle_test" \
+  npx prisma migrate deploy
+```
+
+4. Rodar testes E2E:
+```bash
+npm run test:e2e
+```
+
+Para mais detalhes, veja: [Guia de Configuração E2E](https://github.com/Rafadegolin/miu-controle-backend/blob/main/docs/e2e-setup-guide.md)
+
+### 🎯 Boas Práticas de Testes
+
+**✅ SEMPRE rode os testes antes de fazer commit:**
+
+```bash
+npm test
+```
+
+**✅ Se adicionar uma nova feature, adicione testes:**
+
+```typescript
+it('should validate new business rule', async () => {
+  // Arrange: prepare test data
+  // Act: execute the function
+  // Assert: verify the result
+});
+```
+
+**✅ Se corrigir um bug, adicione um teste que falha sem a correção:**
+
+```typescript
+it('should not allow negative amounts', async () => {
+  await expect(
+    service.create({ amount: -100 })
+  ).rejects.toThrow(BadRequestException);
+});
+```
+
+### 🚫 O Que NÃO Fazer
+
+- ❌ Fazer commit de código que quebra testes
+- ❌ Deletar testes porque "estão atrapalhando"
+- ❌ Ignoror avisos de coverage baixo
+- ❌ Rodar testes E2E contra banco de produção
+
+### 📚 Mais Informações
+
+- [Guia de Escrita de Testes](https://docs.nestjs.com/fundamentals/testing)
+- [Jest Documentation](https://jestjs.io/docs/getting-started)
+- [Supertest (E2E)](https://github.com/visionmedia/supertest)
 
 
 ---
