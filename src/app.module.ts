@@ -20,6 +20,7 @@ import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
 import { ReportsModule } from './reports/reports.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
+import { AdminModule } from './admin/admin.module';
 import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 
 @Module({
@@ -45,6 +46,7 @@ import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
     ReportsModule,
     DashboardModule,
     HealthModule,
+    AdminModule,
     // 🚦 Rate Limiting
     ThrottlerModule.forRoot([
       {

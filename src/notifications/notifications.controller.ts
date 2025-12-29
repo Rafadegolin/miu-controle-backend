@@ -30,20 +30,45 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar notificações' })
+  @ApiOperation({ summary: 'Listar notificações com paginação' })
   @ApiQuery({
     name: 'unreadOnly',
     required: false,
     type: Boolean,
     description: 'Filtrar apenas não lidas',
   })
-  @ApiResponse({ status: 200, description: 'Lista de notificações' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    type: String,
+    description: 'Cursor para paginação (ID da última notificação)',
+  })
+  @ApiQuery({
+    name: 'take',
+    required: false,
+    type: Number,
+    description: 'Quantidade de itens por página (padrão: 50, máx: 100)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de notificações com paginação cursor-based',
+    schema: {
+      properties: {
+        items: { type: 'array' },
+        nextCursor: { type: 'string', nullable: true },
+        hasMore: { type: 'boolean' },
+      },
+    },
+  })
   async findAll(
     @CurrentUser() user: any,
     @Query('unreadOnly') unreadOnly?: string,
+    @Query('cursor') cursor?: string,
+    @Query('take') take?: string,
   ) {
     const unread = unreadOnly === 'true';
-    return this.notificationsService.findAll(user.id, unread);
+    const takeNumber = take ? Math.min(parseInt(take, 10), 100) : 50;
+    return this.notificationsService.findAll(user.id, unread, cursor, takeNumber);
   }
 
   @Get('unread-count')

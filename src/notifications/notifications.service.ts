@@ -35,10 +35,15 @@ export class NotificationsService {
   }
 
   /**
-   * Lista notificações do usuário
+   * Lista notificações do usuário com paginação cursor-based
    */
-  async findAll(userId: string, unreadOnly: boolean = false) {
-    return this.prisma.notification.findMany({
+  async findAll(
+    userId: string,
+    unreadOnly: boolean = false,
+    cursor?: string,
+    take: number = 50,
+  ) {
+    const transactions = await this.prisma.notification.findMany({
       where: {
         userId,
         ...(unreadOnly && { read: false }),
@@ -46,8 +51,23 @@ export class NotificationsService {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 50, // Limitar a 50 mais recentes
+      take: take + 1,
+      ...(cursor && {
+        skip: 1,
+        cursor: { id: cursor },
+      }),
     });
+
+    // Verificar se há mais itens
+    const hasMore = transactions.length > take;
+    const items = hasMore ? transactions.slice(0, take) : transactions;
+    const nextCursor = hasMore ? items[items.length - 1].id : null;
+
+    return {
+      items,
+      nextCursor,
+      hasMore,
+    };
   }
 
   /**
