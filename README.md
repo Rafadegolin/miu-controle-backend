@@ -167,6 +167,59 @@ npm run start:prod
 
 ---
 
+## 🔒 Segurança
+
+### Headers de Segurança Implementados
+
+A API implementa os seguintes headers de proteção (via Helmet):
+
+| Header | Valor | Proteção |
+|--------|-------|----------|
+| `X-Frame-Options` | `SAMEORIGIN` | Previne clickjacking (iframe malicioso) |
+| `X-Content-Type-Options` | `nosniff` | Previne MIME type sniffing |
+| `Referrer-Policy` | `no-referrer` | Não vaza URLs sensíveis |
+| `X-DNS-Prefetch-Control` | `off` | Reduz vazamento de DNS |
+| `X-Response-Time` | `123ms` | Tempo de processamento (debug) |
+
+### CORS (Cross-Origin Resource Sharing)
+
+Apenas os seguintes domínios podem acessar a API:
+
+- `http://localhost:3000` (desenvolvimento)
+- `https://miucontrole.com.br` (produção)
+- `https://www.miucontrole.com.br` (produção)
+- `https://*.vercel.app` (deploys de preview)
+
+**Testar CORS:**
+```bash
+# ✅ Permitido
+curl -H "Origin: http://localhost:3000" http://localhost:3001/health
+
+# 🚫 Bloqueado (verá warning no console do servidor)
+curl -H "Origin: http://evil.com" http://localhost:3001/health
+```
+
+### Sanitização de Inputs
+
+Todos os campos de texto livre são automaticamente sanitizados para prevenir ataques XSS:
+- Remove tags HTML (`<script>`, `<iframe>`, etc.)
+- Remove event handlers (`onclick`, `onerror`)
+- Remove protocolos perigosos (`javascript:`)
+
+**Exemplo:**
+```bash
+# Input:  "<script>alert('XSS')</script>Almoço"
+# Output: "Almoço"
+```
+
+### Timeout Global
+
+Requisições que excedem **30 segundos** são automaticamente canceladas (previne DoS).
+
+Configurável via variável de ambiente `REQUEST_TIMEOUT_MS` (padrão: 30000ms).
+
+---
+
 ## 📚 Documentação da API
 
 ### Swagger UI (Interativo)

@@ -2,9 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import helmet from 'helmet';
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { ResponseTimeInterceptor } from './common/interceptors/response-time.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // 🔒 Helmet - Headers de segurança
+  app.use(helmet({
+    contentSecurityPolicy: false, // Permite Swagger funcionar
+    crossOriginEmbedderPolicy: false, // Compatibilidade com recursos externos
+  }));
 
   // CORS
   app.enableCors({
@@ -22,6 +31,7 @@ async function bootstrap() {
       if (!origin || allowedOrigins.includes(origin) || vercelPattern.test(origin)) {
         callback(null, true);
       } else {
+        console.warn(`🚫 CORS bloqueado: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
@@ -37,6 +47,12 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
     }),
+  );
+
+  // ⏱️ Interceptors globais (timeout e response time)
+  app.useGlobalInterceptors(
+    new TimeoutInterceptor(),
+    new ResponseTimeInterceptor(),
   );
 
   // Swagger

@@ -10,9 +10,11 @@ import {
   MinLength,
   MaxLength,
 } from 'class-validator';
+import { Sanitize } from '../../common/decorators/sanitize.decorator';
 
 export class CreateGoalDto {
   @ApiProperty({ example: 'Viagem para Europa' })
+  @Sanitize()
   @IsString()
   @MinLength(3)
   @MaxLength(255)
@@ -22,6 +24,7 @@ export class CreateGoalDto {
     example: 'Guardar para viagem de férias em julho',
     required: false,
   })
+  @Sanitize()
   @IsOptional()
   @IsString()
   @MaxLength(500)

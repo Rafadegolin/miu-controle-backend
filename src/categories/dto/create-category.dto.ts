@@ -8,9 +8,11 @@ import {
   IsHexColor,
 } from 'class-validator';
 import { CategoryType } from '@prisma/client';
+import { Sanitize } from '../../common/decorators/sanitize.decorator';
 
 export class CreateCategoryDto {
   @ApiProperty({ example: 'Academia' })
+  @Sanitize()
   @IsString()
   @MinLength(2)
   @MaxLength(100)

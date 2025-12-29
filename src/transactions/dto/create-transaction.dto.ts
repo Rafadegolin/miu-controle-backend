@@ -15,6 +15,7 @@ import {
   TransactionSource,
   TransactionType, // <-- REMOVER CategoryType daqui
 } from '@prisma/client';
+import { Sanitize } from '../../common/decorators/sanitize.decorator';
 
 export class CreateTransactionDto {
   @ApiProperty({ example: 'uuid-da-conta' })
@@ -39,12 +40,14 @@ export class CreateTransactionDto {
   amount: number;
 
   @ApiProperty({ example: 'Almoço no restaurante' })
+  @Sanitize()
   @IsNotEmpty() // <-- ADICIONAR
   @IsString()
   @MaxLength(500)
   description: string;
 
   @ApiProperty({ example: 'Restaurante Bom Sabor', required: false })
+  @Sanitize()
   @IsOptional()
   @IsString()
   merchant?: string;
@@ -71,6 +74,7 @@ export class CreateTransactionDto {
   tags?: string[];
 
   @ApiProperty({ example: 'Reunião com cliente', required: false })
+  @Sanitize()
   @IsOptional()
   @IsString()
   notes?: string;
