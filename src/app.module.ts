@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { AccountsModule } from './accounts/accounts.module';
@@ -21,6 +23,7 @@ import { ReportsModule } from './reports/reports.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
 import { AdminModule } from './admin/admin.module';
+import { CacheHelperModule } from './common/cache.module';
 import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 
 @Module({
@@ -28,6 +31,36 @@ import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
     ConfigModule.forRoot({
       isGlobal: true, // .env disponível em todo lugar
     }),
+
+    // Cache Module Global com Redis
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        try {
+          const store = await redisStore({
+            socket: {
+              host: configService.get('REDIS_HOST', 'localhost'),
+              port: configService.get<number>('REDIS_PORT', 6379),
+            },
+            password: configService.get('REDIS_PASSWORD'),
+            ttl: configService.get<number>('REDIS_TTL', 300) * 1000, // Convert to ms
+          });
+
+          console.log('✅ Redis cache connected successfully');
+          return { store };
+        } catch (error) {
+          console.error('❌ Redis connection failed, cache disabled:', error.message);
+          // Fallback to memory cache if Redis fails
+          return {};
+        }
+      },
+    }),
+
+    // Import CacheHelperModule for CacheService
+    CacheHelperModule,
+    
     PrismaModule,
     AuthModule,
     AccountsModule,

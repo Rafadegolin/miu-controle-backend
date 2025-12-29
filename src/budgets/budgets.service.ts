@@ -4,15 +4,23 @@ import {
   ForbiddenException,
   ConflictException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { BudgetPeriod } from '@prisma/client';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { CacheService } from '../common/services/cache.service';
 
 @Injectable()
 export class BudgetsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private cacheService: CacheService,
+  ) {}
 
   async create(userId: string, createBudgetDto: CreateBudgetDto) {
     // Validar se categoria existe
@@ -261,7 +269,25 @@ export class BudgetsService {
     return { message: 'Orçamento deletado com sucesso' };
   }
 
+  /**
+   * Resumo de orçamentos do mês
+   * Cache: 10 minutos
+   */
   async getSummary(userId: string, month?: string) {
+    const cacheKey = `budgets:${userId}:summary:${month || 'current'}`;
+
+    // Tentar buscar do cache
+    try {
+      const cached = await this.cacheManager.get(cacheKey);
+      if (cached) {
+        this.cacheService.logHit(cacheKey);
+        return cached as any;
+      }
+    } catch (error) {
+      // Se cache falhar, continua
+    }
+
+    this.cacheService.logMiss(cacheKey);
     const date = month ? new Date(month) : new Date();
     const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
     const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
@@ -313,7 +339,7 @@ export class BudgetsService {
     const totalBudgeted = summary.reduce((sum, b) => sum + b.budgeted, 0);
     const totalSpent = summary.reduce((sum, b) => sum + b.spent, 0);
 
-    return {
+    const result = {
       period: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
       totalBudgeted,
       totalSpent,
@@ -322,6 +348,15 @@ export class BudgetsService {
         Math.round((totalSpent / totalBudgeted) * 100 * 100) / 100,
       budgets: summary,
     };
+
+    // Salvar no cache por 10 minutos (600000ms)
+    try {
+      await this.cacheManager.set(cacheKey, result, 600000);
+    } catch (error) {
+      // Se falhar ao salvar cache, apenas continue
+    }
+
+    return result;
   }
 
   // ==================== MÉTODOS AUXILIARES ====================

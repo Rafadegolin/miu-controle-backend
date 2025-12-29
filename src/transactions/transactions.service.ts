@@ -14,10 +14,14 @@ import {
   TransactionStatus,
   TransactionSource,
 } from '@prisma/client';
+import { CacheService } from '../common/services/cache.service';
 
 @Injectable()
 export class TransactionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cacheService: CacheService,
+  ) {}
 
   async create(userId: string, createTransactionDto: CreateTransactionDto) {
     // Validar se a conta existe e pertence ao usuário
@@ -86,6 +90,9 @@ export class TransactionsService {
       createTransactionDto.amount,
       'ADD',
     );
+
+    // Invalidar cache do usuário
+    await this.cacheService.invalidateUserCache(userId);
 
     return transaction;
   }
@@ -230,7 +237,7 @@ export class TransactionsService {
       );
     }
 
-    return this.prisma.transaction.update({
+    const updated = await this.prisma.transaction.update({
       where: { id },
       data: {
         ...updateTransactionDto,
@@ -243,6 +250,11 @@ export class TransactionsService {
         account: true,
       },
     });
+
+    // Invalidar cache do usuário
+    await this.cacheService.invalidateUserCache(userId);
+
+    return updated;
   }
 
   async remove(id: string, userId: string) {
@@ -259,6 +271,9 @@ export class TransactionsService {
     await this.prisma.transaction.delete({
       where: { id },
     });
+
+    // Invalidar cache do usuário
+    await this.cacheService.invalidateUserCache(userId);
 
     return { message: 'Transação deletada com sucesso' };
   }
