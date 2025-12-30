@@ -25,6 +25,8 @@ import { HealthModule } from './health/health.module';
 import { AdminModule } from './admin/admin.module';
 import { CacheHelperModule } from './common/cache.module';
 import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
+import { AuditModule } from './audit/audit.module';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 @Module({
   imports: [
@@ -80,6 +82,7 @@ import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
     DashboardModule,
     HealthModule,
     AdminModule,
+    AuditModule,
     // 🚦 Rate Limiting
     ThrottlerModule.forRoot([
       {
@@ -109,6 +112,11 @@ import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
     {
       provide: APP_INTERCEPTOR,
       useClass: MetricsInterceptor,
+    },
+    // 📝 AuditInterceptor global
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
   ],
 })
