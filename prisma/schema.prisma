@@ -37,6 +37,7 @@ model User {
   notifications     Notification[]
   recurringTransactions RecurringTransaction[]
   preferredCurrency String  @default("BRL") @map("preferred_currency")
+  auditLogs         AuditLog[]
 
   @@map("users")
 }
@@ -476,4 +477,33 @@ model ExchangeRate {
   @@index([fromCurrencyId, toCurrencyId])
   @@index([date(sort: Desc)])
   @@map("exchange_rates")
+}
+
+// ==================== AUDITORIA ====================
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  action    String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, REGISTER
+  entity    String   // TRANSACTION, ACCOUNT, BUDGET, GOAL, CATEGORY, USER, RECURRING_TRANSACTION
+  entityId  String?  @map("entity_id")
+  
+  // Snapshot before/after para rastreabilidade completa
+  before    Json?    // Estado anterior (para UPDATE/DELETE)
+  after     Json?    // Estado posterior (para CREATE/UPDATE)
+  
+  // Metadata de segurança
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Indexes para performance de queries
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
 }
