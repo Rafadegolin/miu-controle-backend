@@ -22,6 +22,7 @@ import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { FilterTransactionDto } from './dto/filter-transaction.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CorrectCategoryDto } from '../ai/dto/correct-category.dto';
 
 @ApiTags('Transações')
 @Controller('transactions')
@@ -92,5 +93,26 @@ export class TransactionsController {
   @ApiOperation({ summary: 'Deletar transação' })
   remove(@Param('id') id: string, @CurrentUser() user) {
     return this.transactionsService.remove(id, user.id);
+  }
+
+  /**
+   * 🤖 AI FEEDBACK: Corrigir categoria sugerida pela IA
+   */
+  @Post(':id/correct-category')
+  @ApiOperation({
+    summary: 'Corrigir categoria AI',
+    description:
+      'Permite corrigir a categoria sugerida pela IA, gerando feedback para melhorar o modelo',
+  })
+  correctCategory(
+    @Param('id') id: string,
+    @CurrentUser() user,
+    @Body() correctCategoryDto: CorrectCategoryDto,
+  ) {
+    return this.transactionsService.correctCategory(
+      id,
+      user.id,
+      correctCategoryDto.correctedCategoryId,
+    );
   }
 }

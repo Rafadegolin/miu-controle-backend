@@ -17,6 +17,7 @@ import {
 import { CacheService } from '../common/services/cache.service';
 import { WebsocketService } from '../websocket/websocket.service';
 import { WS_EVENTS } from '../websocket/events/websocket.events';
+import { AiCategorizationService } from '../ai/services/ai-categorization.service';
 
 @Injectable()
 export class TransactionsService {
@@ -24,6 +25,7 @@ export class TransactionsService {
     private prisma: PrismaService,
     private cacheService: CacheService,
     private websocketService: WebsocketService,
+    private aiCategorizationService: AiCategorizationService,
   ) {}
 
   async create(userId: string, createTransactionDto: CreateTransactionDto) {
@@ -60,6 +62,53 @@ export class TransactionsService {
       }
     }
 
+    // 🤖 AI CATEGORIZATION: Se categoria não fornecida, tentar categorização automática
+    let aiCategoryId: string | null = null;
+    let aiConfidence: number | null = null;
+    let aiCategorized = false;
+
+    if (!createTransactionDto.categoryId) {
+      try {
+        const aiResult = await this.aiCategorizationService.categorizeTransaction(
+          userId,
+          {
+            description: createTransactionDto.description,
+            amount: createTransactionDto.amount,
+            merchant: createTransactionDto.merchant,
+            date: createTransactionDto.date
+              ? new Date(createTransactionDto.date)
+              : new Date(),
+          },
+        );
+
+        // Aplicar categoria se confiança >= 0.7
+        if (aiResult.categoryId && aiResult.confidence >= 0.7) {
+          aiCategoryId = aiResult.categoryId;
+          aiConfidence = aiResult.confidence;
+          aiCategorized = true;
+
+          // Validar categoria sugerida pela IA
+          const suggestedCategory = await this.prisma.category.findUnique({
+            where: { id: aiResult.categoryId },
+          });
+
+          // Verificar tipo da transação vs categoria
+          if (
+            suggestedCategory &&
+            suggestedCategory.type === createTransactionDto.type
+          ) {
+            createTransactionDto.categoryId = aiResult.categoryId;
+          } else {
+            // Categoria sugerida não é compatível, ignorar
+            aiCategorized = false;
+          }
+        }
+      } catch (error) {
+        // Falha na AI não deve impedir criação da transação
+        console.warn('AI categorization failed:', error.message);
+      }
+    }
+
     // Criar transação
     const transaction = await this.prisma.transaction.create({
       data: {
@@ -79,6 +128,9 @@ export class TransactionsService {
         notes: createTransactionDto.notes,
         source: createTransactionDto.source || 'MANUAL',
         status: 'COMPLETED',
+        // AI fields
+        aiCategorized,
+        aiConfidence: aiConfidence !== null ? aiConfidence : undefined,
       },
       include: {
         category: true,
@@ -106,6 +158,10 @@ export class TransactionsService {
       amount: Number(transaction.amount),
       description: transaction.description,
       date: transaction.date,
+      aiCategorized: transaction.aiCategorized, // Indicar se foi categorizado por IA
+      aiConfidence: transaction.aiConfidence
+        ? Number(transaction.aiConfidence)
+        : null,
     });
 
     return transaction;
@@ -400,6 +456,92 @@ export class TransactionsService {
       average,
       count: transactions.length,
       transactions: transactions.slice(0, 20),
+    };
+  }
+
+  /**
+   * 🤖 AI FEEDBACK: Correct category suggested by AI
+   */
+  async correctCategory(
+    transactionId: string,
+    userId: string,
+    correctedCategoryId: string,
+  ) {
+    // 1. Find transaction and validate ownership
+    const transaction = await this.prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: { category: true },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException('Transação não encontrada');
+    }
+
+    if (transaction.userId !== userId) {
+      throw new ForbiddenException(
+        'Você não tem permissão para modificar esta transação',
+      );
+    }
+
+    // 2. Validate corrected category exists
+    const correctedCategory = await this.prisma.category.findUnique({
+      where: { id: correctedCategoryId },
+    });
+
+    if (!correctedCategory) {
+      throw new NotFoundException('Categoria corrigida não encontrada');
+    }
+
+    // 3. Check if category type matches transaction type
+    if (correctedCategory.type !== transaction.type) {
+      throw new BadRequestException(
+        `Categoria do tipo ${correctedCategory.type} não pode ser usada em transação do tipo ${transaction.type}`,
+      );
+    }
+
+    // 4. Save feedback (only if was AI categorized)
+    if (transaction.aiCategorized && transaction.categoryId) {
+      const wasCorrect = transaction.categoryId === correctedCategoryId;
+
+      await this.prisma.aiCategorizationFeedback.create({
+        data: {
+          userId,
+          transactionId,
+          originalCategoryId: transaction.categoryId,
+          correctedCategoryId,
+          aiConfidence: transaction.aiConfidence || 0,
+          wasCorrect,
+        },
+      });
+    }
+
+    // 5. Update transaction with corrected category
+    const updatedTransaction = await this.prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        categoryId: correctedCategoryId,
+        aiCategorized: false, // Mark as manually corrected
+      },
+      include: {
+        category: true,
+        account: true,
+      },
+    });
+
+    // 6. Invalidar cache
+    await this.cacheService.invalidateUserCache(userId);
+
+    // 7. Emit WebSocket event
+    this.websocketService.emitToUser(userId, WS_EVENTS.TRANSACTION_UPDATED, {
+      transactionId: updatedTransaction.id,
+      categoryId: updatedTransaction.categoryId,
+      aiCategorized: updatedTransaction.aiCategorized,
+    });
+
+    return {
+      message: 'Categoria corrigida com sucesso',
+      transaction: updatedTransaction,
+      feedbackSaved: transaction.aiCategorized,
     };
   }
 

@@ -50,9 +50,9 @@ A maioria das pessoas desiste de controlar suas finanças porque registrar cada 
 ### 🔜 Roadmap
 
 - [x] **Cache com Redis** - Performance e otimização ✅
+- [x] **Categorização Automática** - IA aprende seus padrões de gasto ✅
 - [ ] **Orçamentos** - Definir limites mensais por categoria
-- [ ] **Objetivos (Potes Virtuais)** - Guardar dinheiro para metas específicas
-- [ ] **Categorização Automática** - IA aprende seus padrões de gasto
+- [ ] **Objetivos (Potes Virtuais)** - Guardar dinheiro para metas específicas  
 - [ ] **Notificações Bancárias** - Registro automático via SMS (Android)
 - [ ] **Open Banking** - Integração com Pluggy/Belvo
 - [ ] **SaaS/Assinaturas** - AbacatePay para planos Pro e Family
@@ -710,6 +710,74 @@ Authorization: Bearer {token}
 Para guia detalhado de integração frontend, consulte:
 - `WEBSOCKET_FRONTEND_GUIDE.md` - Integração completa com React/Next.js
 - `WEBSOCKET_TESTING_GUIDE.md` - 5 métodos diferentes de teste
+
+---
+
+## 🤖 AI Features
+
+### Categorização Automática de Transações
+
+O Miu Controle utiliza **OpenAI GPT-4o-mini** para categorizar transações automaticamente quando nenhuma categoria é fornecida pelo usuário.
+
+#### ⚡ Como Funciona
+
+1. **Usuário configura API key** da OpenAI (encriptada com AES-256-GCM)
+2. **Cria transação sem categoria** → IA analisa descrição, valor e histórico
+3. **Confiança >= 70%** → Categoria aplicada automaticamente
+4. **Usuário pode corrigir** → Sistema aprende com feedback
+
+#### 📊 Endpoints Disponíveis
+
+##### Configuração
+```bash
+POST   /ai/config              # Salvar API key (testada antes)
+GET    /ai/config              # Ver configuração
+PATCH  /ai/config              # Atualizar settings  
+DELETE /ai/config              # Remover API key
+POST   /ai/config/test         # Testar key sem salvar
+```
+
+##### Métricas
+```bash
+GET    /ai/usage-stats         # Tokens, custos, breakdown
+GET    /ai/categorization-stats # Precisão, confiança média
+```
+
+##### Feedback
+```bash
+POST   /transactions/:id/correct-category  # Corrigir categoria IA
+```
+
+#### 💰 Estimativa de Custos
+
+| Uso Mensal | Custo USD | Custo BRL* |
+|-----------|-----------|---------   |
+| 100 transações | $0.015 | ~R$ 0.07 |
+| 500 transações | $0.075 | ~R$ 0.37 |
+| 1000 transações | $0.150 | ~R$ 0.74 |
+
+*GPT-4o-mini - ~600 tokens/categorização
+
+#### 🔐 Segurança
+
+- ✅ API keys encriptadas com AES-256-GCM
+- ✅ Zero vazamentos em logs
+- ✅ Ownership validation
+- ✅ Rate limiting
+- ✅ Audit log de todas operações
+
+#### 📚 Documentação Completa
+
+- **[AI Integration Guide](docs/AI_INTEGRATION_GUIDE.md)** - Setup passo a passo
+- **[Frontend UI Examples](docs/AI_FRONTEND_EXAMPLES.md)** - Componentes React
+- **[Walkthrough](docs/ai-implementation-walkthrough.md)** - Arquitetura detalhada
+
+#### 🔮 Preparado para o Futuro
+
+A arquitetura AI é extensível para:
+- 📸 **OCR** - Extrair dados de nota fiscal  
+- 📱 **Bank Notifications** - Processar SMS do banco
+- 💬 **Financial Assistant** - Chat inteligente
 
 ---
 
