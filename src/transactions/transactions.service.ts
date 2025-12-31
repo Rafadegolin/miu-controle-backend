@@ -15,12 +15,15 @@ import {
   TransactionSource,
 } from '@prisma/client';
 import { CacheService } from '../common/services/cache.service';
+import { WebsocketService } from '../websocket/websocket.service';
+import { WS_EVENTS } from '../websocket/events/websocket.events';
 
 @Injectable()
 export class TransactionsService {
   constructor(
     private prisma: PrismaService,
     private cacheService: CacheService,
+    private websocketService: WebsocketService,
   ) {}
 
   async create(userId: string, createTransactionDto: CreateTransactionDto) {
@@ -93,6 +96,17 @@ export class TransactionsService {
 
     // Invalidar cache do usuário
     await this.cacheService.invalidateUserCache(userId);
+
+    // Emitir evento WebSocket
+    this.websocketService.emitToUser(userId, WS_EVENTS.TRANSACTION_CREATED, {
+      transactionId: transaction.id,
+      accountId: transaction.accountId,
+      categoryId: transaction.categoryId,
+      type: transaction.type,
+      amount: Number(transaction.amount),
+      description: transaction.description,
+      date: transaction.date,
+    });
 
     return transaction;
   }
@@ -254,6 +268,17 @@ export class TransactionsService {
     // Invalidar cache do usuário
     await this.cacheService.invalidateUserCache(userId);
 
+    // Emitir evento WebSocket
+    this.websocketService.emitToUser(userId, WS_EVENTS.TRANSACTION_UPDATED, {
+      transactionId: updated.id,
+      accountId: updated.accountId,
+      categoryId: updated.categoryId,
+      type: updated.type,
+      amount: Number(updated.amount),
+      description: updated.description,
+      date: updated.date,
+    });
+
     return updated;
   }
 
@@ -274,6 +299,12 @@ export class TransactionsService {
 
     // Invalidar cache do usuário
     await this.cacheService.invalidateUserCache(userId);
+
+    // Emitir evento WebSocket
+    this.websocketService.emitToUser(userId, WS_EVENTS.TRANSACTION_DELETED, {
+      transactionId: id,
+      accountId: transaction.accountId,
+    });
 
     return { message: 'Transação deletada com sucesso' };
   }
@@ -403,9 +434,19 @@ export class TransactionsService {
       }
     }
 
-    await this.prisma.account.update({
+    const previousBalance = Number(account.currentBalance);
+    
+    const updatedAccount = await this.prisma.account.update({
       where: { id: accountId },
       data: { currentBalance: newBalance },
+    });
+
+    // Emitir evento de saldo atualizado
+    this.websocketService.emitToUser(account.userId, WS_EVENTS.BALANCE_UPDATED, {
+      accountId,
+      previousBalance,
+      newBalance: Number(updatedAccount.currentBalance),
+      difference: Number(updatedAccount.currentBalance) - previousBalance,
     });
   }
 }

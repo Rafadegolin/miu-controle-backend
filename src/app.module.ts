@@ -27,6 +27,7 @@ import { CacheHelperModule } from './common/cache.module';
 import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 import { AuditModule } from './audit/audit.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     HealthModule,
     AdminModule,
     AuditModule,
+    WebsocketModule,
     // 🚦 Rate Limiting
     ThrottlerModule.forRoot([
       {
