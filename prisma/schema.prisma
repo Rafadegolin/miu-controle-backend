@@ -38,6 +38,12 @@ model User {
   recurringTransactions RecurringTransaction[]
   preferredCurrency String  @default("BRL") @map("preferred_currency")
   auditLogs         AuditLog[]
+  
+  // AI Relations
+  aiConfig              UserAiConfig?
+  aiUsageMetrics        AiUsageMetric[]
+  aiCategorizationFeedbacks AiCategorizationFeedback[]
+  lastAiTrainingAt      DateTime?  @map("last_ai_training_at")
 
   @@map("users")
 }
@@ -99,6 +105,10 @@ model Category {
   transactions      Transaction[]
   budgets           Budget[]
   rules             CategorizationRule[]
+  
+  // AI Relations
+  originalFeedbacks  AiCategorizationFeedback[] @relation("OriginalCategory")
+  correctedFeedbacks AiCategorizationFeedback[] @relation("CorrectedCategory")
 
   recurringTransactions RecurringTransaction[]
 
@@ -133,13 +143,18 @@ model Transaction {
   receiptUrl        String?             @map("receipt_url")
   status            TransactionStatus   @default(COMPLETED)
   source            TransactionSource   @default(MANUAL)
-  notificationHash  String?             @unique @map("notification_hash")
+ notificationHash  String?             @unique @map("notification_hash")
+  
+  // AI Fields
+  aiCategorized     Boolean?            @default(false) @map("ai_categorized")
   aiConfidence      Decimal?            @map("ai_confidence") @db.Decimal(3, 2)
+  
   createdAt         DateTime            @default(now()) @map("created_at")
   updatedAt         DateTime            @updatedAt @map("updated_at")
 
   goalContributions GoalContribution[]
   notificationLog   NotificationLog?
+  categorizationFeedback AiCategorizationFeedback?
 
   recurringTransactionId String?              @map("recurring_transaction_id")
   recurringTransaction   RecurringTransaction? @relation("RecurringSource", fields: [recurringTransactionId], references: [id], onDelete: SetNull)
@@ -506,4 +521,88 @@ model AuditLog {
   @@index([action])
   @@index([createdAt(sort: Desc)])
   @@map("audit_logs")
+}
+
+// ==================== AI SYSTEM ====================
+
+model UserAiConfig {
+  id                    String   @id @default(uuid())
+  userId                String   @unique @map("user_id")
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // API Key encriptada (AES-256-GCM)
+  openaiApiKeyEncrypted String   @map("openai_api_key_encrypted")
+  
+  // Configurações
+  isAiEnabled           Boolean  @default(true) @map("is_ai_enabled")
+  monthlyTokenLimit     Int?     @map("monthly_token_limit") @default(1000000) // 1M tokens
+  preferredModel        String   @default("gpt-4o-mini") @map("preferred_model")
+  
+  // Metadata
+  lastTestedAt          DateTime? @map("last_tested_at")
+  isKeyValid            Boolean  @default(true) @map("is_key_valid")
+  
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  
+  @@map("user_ai_configs")
+}
+
+model AiUsageMetric {
+  id                String         @id @default(uuid())
+  userId            String         @map("user_id")
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Feature que usou AI
+  feature           AiFeatureType
+  
+  // Métricas de uso
+  model             String         // "gpt-4o-mini", "gpt-4-vision", etc
+  promptTokens      Int            @map("prompt_tokens")
+  completionTokens  Int            @map("completion_tokens")
+  totalTokens       Int            @map("total_tokens")
+  estimatedCost     Decimal        @map("estimated_cost") @db.Decimal(10, 6) // em USD
+  
+  // Context
+  relatedEntityId   String?        @map("related_entity_id") // transactionId, etc
+  success           Boolean        @default(true)
+  errorMessage      String?        @map("error_message")
+  
+  timestamp         DateTime       @default(now())
+  
+  @@index([userId, timestamp])
+  @@index([userId, feature])
+  @@map("ai_usage_metrics")
+}
+
+enum AiFeatureType {
+  CATEGORIZATION
+  OCR               // Futuro
+  BANK_NOTIFICATION // Futuro
+  ASSISTANT         // Futuro
+}
+
+model AiCategorizationFeedback {
+  id                   String      @id @default(uuid())
+  userId               String      @map("user_id")
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactionId        String      @unique @map("transaction_id")
+  transaction          Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  // Categoria original (sugerida pela IA)
+  originalCategoryId   String?     @map("original_category_id")
+  originalCategory     Category?   @relation("OriginalCategory", fields: [originalCategoryId], references: [id], onDelete: SetNull)
+  
+  // Categoria corrigida (pelo usuário)
+  correctedCategoryId  String      @map("corrected_category_id")
+  correctedCategory    Category    @relation("CorrectedCategory", fields: [correctedCategoryId], references: [id], onDelete: Cascade)
+  
+  // Métricas
+  aiConfidence         Decimal     @map("ai_confidence") @db.Decimal(3, 2)
+  wasCorrect           Boolean     @map("was_correct") // true se correção == original
+  
+  createdAt            DateTime    @default(now()) @map("created_at")
+  
+  @@index([userId])
+  @@map("ai_categorization_feedbacks")
 }

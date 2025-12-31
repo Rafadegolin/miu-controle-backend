@@ -28,6 +28,8 @@ import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 import { AuditModule } from './audit/audit.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { WebsocketModule } from './websocket/websocket.module';
+import { CommonModule } from './common/common.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -85,6 +87,8 @@ import { WebsocketModule } from './websocket/websocket.module';
     AdminModule,
     AuditModule,
     WebsocketModule,
+    CommonModule, // Global services (EncryptionService)
+    AiModule, // AI services (Categorization, Usage tracking)
     // 🚦 Rate Limiting
     ThrottlerModule.forRoot([
       {
