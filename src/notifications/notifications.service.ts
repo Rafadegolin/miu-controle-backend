@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { NotificationType } from '@prisma/client';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { WebsocketService } from '../websocket/websocket.service';
+import { WS_EVENTS } from '../websocket/events/websocket.events';
 
 @Injectable()
 export class NotificationsService {
@@ -11,6 +13,7 @@ export class NotificationsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private websocketService: WebsocketService,
   ) {}
 
   /**
@@ -23,7 +26,7 @@ export class NotificationsService {
     message: string,
     data?: any,
   ) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId,
         type,
@@ -32,6 +35,17 @@ export class NotificationsService {
         data: data || {},
       },
     });
+
+    // Emitir evento WebSocket
+    this.websocketService.emitToUser(userId, WS_EVENTS.NOTIFICATION_NEW, {
+      notificationId: notification.id,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      data: notification.data,
+    });
+
+    return notification;
   }
 
   /**

@@ -606,6 +606,113 @@ readinessProbe:
 
 ---
 
+## 🔌 WebSocket - Atualizações em Tempo Real
+
+O Miu Controle implementa **WebSockets com Socket.IO** para atualizações em tempo real, eliminando a necessidade de polling e proporcionando uma experiência instantânea em múltiplos dispositivos.
+
+### 🎯 Benefícios
+
+- ✅ **Sincronização instantânea** entre múltiplos dispositivos
+- ✅ **Atualizações em tempo real** de transações, saldos e notificações
+- ✅ **Autenticação JWT** obrigatória no handshake
+- ✅ **Isolamento por usuário** via rooms (user:${userId})
+- ✅ **Heartbeat automático** a cada 30 segundos
+- ✅ **Reconexão automática** com backoff exponencial
+
+### 📡 Eventos Disponíveis
+
+| Evento | Quando É Emitido | Payload |
+|--------|------------------|---------|
+| `transaction.created` | Nova transação criada | `{ transactionId, accountId, categoryId, type, amount, description, date }` |
+| `transaction.updated` | Transação editada | `{ transactionId, accountId, categoryId, type, amount, description, date }` |
+| `transaction.deleted` | Transação deletada | `{ transactionId, accountId }` |
+| `balance.updated` | Saldo de conta atualizado | `{ accountId, previousBalance, newBalance, difference }` |
+| `notification.new` | Nova notificação criada | `{ notificationId, type, title, message, data }` |
+
+### 🚀 Conectando ao WebSocket
+
+**JavaScript/TypeScript (Frontend):**
+
+```typescript
+import { io } from 'socket.io-client';
+
+// Conectar com token JWT
+const socket = io('http://localhost:3001', {
+  auth: {
+    token: 'seu_jwt_token_aqui'  // Token obtido do login
+  },
+  transports: ['websocket', 'polling']
+});
+
+// Listeners de conexão
+socket.on('connect', () => {
+  console.log('✅ WebSocket conectado:', socket.id);
+});
+
+socket.on('connected', (data) => {
+  console.log('📨 Servidor:', data);
+  // { message: 'WebSocket connected successfully', userId, timestamp }
+});
+
+// Listeners de eventos
+socket.on('transaction.created', (data) => {
+  console.log('🆕 Nova transação:', data);
+  // Invalidar cache / atualizar UI
+});
+
+socket.on('balance.updated', (data) => {
+  console.log('💰 Saldo atualizado:', data);
+  // Atualizar saldo na UI
+});
+
+socket.on('notification.new', (data) => {
+  console.log('🔔 Nova notificação:', data);
+  // Mostrar toast/alert
+});
+```
+
+### 🧪 Testando o WebSocket
+
+Execute o script de teste interativo:
+
+```bash
+node test-websocket.js
+```
+
+Credenciais de teste:
+- **Email:** `teste@miucontrole.com`
+- **Senha:** `senha123`
+
+O script permite:
+1. Conectar ao WebSocket com autenticação JWT
+2. Criar transações de teste e ver eventos em tempo real
+3. Verificar status de conexões ativas
+4. Testar multi-dispositivo (2 terminais simultaneamente)
+
+### 📊 Endpoint de Status
+
+```bash
+GET /websocket/status
+Authorization: Bearer {token}
+```
+
+**Resposta:**
+```json
+{
+  "totalConnections": 5,
+  "connectedUsers": ["user-123", "user-456"],
+  "timestamp": "2025-12-31T19:15:00.000Z"
+}
+```
+
+### 📚 Documentação Completa
+
+Para guia detalhado de integração frontend, consulte:
+- `WEBSOCKET_FRONTEND_GUIDE.md` - Integração completa com React/Next.js
+- `WEBSOCKET_TESTING_GUIDE.md` - 5 métodos diferentes de teste
+
+---
+
 ## 📚 Documentação da API
 
 ### Swagger UI (Interativo)
