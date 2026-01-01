@@ -5,12 +5,21 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * DTO for saving AI configuration
  */
 export class SaveAiConfigDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'OpenAI API key (will be encrypted)',
     example: 'sk-proj-abc123...',
   })
+  @IsOptional()
   @IsString()
-  openaiApiKey: string;
+  openaiApiKey?: string;
+
+  @ApiPropertyOptional({
+    description: 'Gemini API key (will be encrypted)',
+    example: 'AIzaSy...',
+  })
+  @IsOptional()
+  @IsString()
+  geminiApiKey?: string;
 
   @ApiPropertyOptional({
     description: 'Enable/disable AI categorization',
@@ -32,13 +41,22 @@ export class SaveAiConfigDto {
   monthlyTokenLimit?: number;
 
   @ApiPropertyOptional({
-    description: 'Preferred model (default: gpt-4o-mini)',
+    description: 'Model for categorization',
     example: 'gpt-4o-mini',
     default: 'gpt-4o-mini',
   })
   @IsOptional()
   @IsString()
-  preferredModel?: string;
+  categorizationModel?: string;
+
+  @ApiPropertyOptional({
+    description: 'Model for analytics',
+    example: 'gemini-1.5-flash',
+    default: 'gemini-1.5-flash',
+  })
+  @IsOptional()
+  @IsString()
+  analyticsModel?: string;
 }
 
 /**
@@ -63,22 +81,39 @@ export class UpdateAiConfigDto {
   monthlyTokenLimit?: number;
 
   @ApiPropertyOptional({
-    description: 'Preferred model',
+    description: 'Model for categorization',
     example: 'gpt-4o-mini',
   })
   @IsOptional()
   @IsString()
-  preferredModel?: string;
+  categorizationModel?: string;
+
+  @ApiPropertyOptional({
+    description: 'Model for analytics',
+    example: 'gemini-1.5-flash',
+  })
+  @IsOptional()
+  @IsString()
+  analyticsModel?: string;
 }
 
 /**
  * DTO for testing API key
  */
 export class TestApiKeyDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'OpenAI API key to test',
     example: 'sk-proj-abc123...',
   })
+  @IsOptional()
   @IsString()
-  openaiApiKey: string;
+  openaiApiKey?: string;
+
+  @ApiPropertyOptional({
+    description: 'Gemini API key to test',
+    example: 'AIzaSy...',
+  })
+  @IsOptional()
+  @IsString()
+  geminiApiKey?: string;
 }

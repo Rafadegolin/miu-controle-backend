@@ -1,24 +1,44 @@
 import { Module } from '@nestjs/common';
-import { AuditModule } from '../audit/audit.module';
-import { CommonModule } from '../common/common.module';
+import { CommonModule } from 'src/common/common.module';
+import { AuditModule } from 'src/audit/audit.module';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 import { OpenAiService } from './services/openai.service';
 import { AiCategorizationService } from './services/ai-categorization.service';
 import { AiUsageService } from './services/ai-usage.service';
+import { AiKeyManagerService } from './services/ai-key-manager.service';
+import { GeminiService } from './services/gemini.service';
+import { PredictiveAnalyticsService } from './services/predictive-analytics.service';
+import { AnomalyDetectionJob } from './jobs/anomaly-detection.job';
+
 import { AiConfigController } from './controllers/ai-config.controller';
 import { AiUsageController } from './controllers/ai-usage.controller';
+import { AnalyticsController } from './controllers/analytics.controller';
 
 /**
  * AI Module
- * Handles all AI-related features:
- * - Automatic transaction categorization
- * - OCR (future)
- * - Bank notification processing (future)
- * - Financial assistant (future)
  */
 @Module({
-  imports: [CommonModule, AuditModule],
-  controllers: [AiConfigController, AiUsageController],
-  providers: [OpenAiService, AiCategorizationService, AiUsageService],
-  exports: [AiCategorizationService, AiUsageService], // Export for use in TransactionsService
+  imports: [CommonModule, AuditModule, NotificationsModule],
+  controllers: [
+    AiConfigController, 
+    AiUsageController,
+    AnalyticsController,
+  ],
+  providers: [
+    OpenAiService, 
+    AiCategorizationService, 
+    AiUsageService,
+    AiKeyManagerService,
+    GeminiService,
+    PredictiveAnalyticsService,
+    AnomalyDetectionJob,
+  ],
+  exports: [
+    AiCategorizationService, 
+    AiUsageService,
+    AiKeyManagerService,
+    GeminiService,
+    PredictiveAnalyticsService,
+  ],
 })
 export class AiModule {}

@@ -43,6 +43,8 @@ model User {
   aiConfig              UserAiConfig?
   aiUsageMetrics        AiUsageMetric[]
   aiCategorizationFeedbacks AiCategorizationFeedback[]
+  predictionHistory     PredictionHistory[]
+  anomalyDetections     AnomalyDetection[]
   lastAiTrainingAt      DateTime?  @map("last_ai_training_at")
 
   @@map("users")
@@ -155,6 +157,7 @@ model Transaction {
   goalContributions GoalContribution[]
   notificationLog   NotificationLog?
   categorizationFeedback AiCategorizationFeedback?
+  detectedAnomalies AnomalyDetection[]
 
   recurringTransactionId String?              @map("recurring_transaction_id")
   recurringTransaction   RecurringTransaction? @relation("RecurringSource", fields: [recurringTransactionId], references: [id], onDelete: SetNull)
@@ -530,13 +533,24 @@ model UserAiConfig {
   userId                String   @unique @map("user_id")
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  // API Key encriptada (AES-256-GCM)
-  openaiApiKeyEncrypted String   @map("openai_api_key_encrypted")
+  // 🔑 API Keys Management
+  // FREE tier: User provides their own keys (encrypted)
+  openaiApiKeyEncrypted String?  @map("openai_api_key_encrypted")
+  geminiApiKeyEncrypted String?  @map("gemini_api_key_encrypted")  // 🆕
+  
+  // PRO/FAMILY tier: Use corporate keys from env vars
+  usesCorporateKey      Boolean  @default(false) @map("uses_corporate_key") // 🆕
   
   // Configurações
   isAiEnabled           Boolean  @default(true) @map("is_ai_enabled")
-  monthlyTokenLimit     Int?     @map("monthly_token_limit") @default(1000000) // 1M tokens
-  preferredModel        String   @default("gpt-4o-mini") @map("preferred_model")
+  monthlyTokenLimit     Int?     @map("monthly_token_limit") @default(1000000) // 1M tokens (FREE only)
+  
+  // Provider preferences (Granular per feature)
+  categorizationModel   String   @default("gpt-4o-mini") @map("categorization_model")
+  analyticsModel        String   @default("gemini-1.5-flash") @map("analytics_model")
+  // Models suportados na UI: 
+  // - gpt-4o-mini, gpt-4o
+  // - gemini-1.5-flash, gemini-1.5-pro
   
   // Metadata
   lastTestedAt          DateTime? @map("last_tested_at")
@@ -577,9 +591,11 @@ model AiUsageMetric {
 
 enum AiFeatureType {
   CATEGORIZATION
-  OCR               // Futuro
-  BANK_NOTIFICATION // Futuro
-  ASSISTANT         // Futuro
+  PREDICTIVE_ANALYTICS  // 🆕
+  ANOMALY_DETECTION     // 🆕
+  OCR
+  BANK_NOTIFICATION
+  ASSISTANT
 }
 
 model AiCategorizationFeedback {
@@ -605,4 +621,70 @@ model AiCategorizationFeedback {
   
   @@index([userId])
   @@map("ai_categorization_feedbacks")
+}
+
+// 🆕 Histórico de previsões
+model PredictionHistory {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Dados da previsão
+  predictionType  String   @map("prediction_type") // MONTHLY_FORECAST, GOAL_FORECAST, TREND
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime @map("period_end")
+  
+  // Previsão gerada
+  predictedIncome   Decimal? @map("predicted_income") @db.Decimal(15, 2)
+  predictedExpenses Decimal? @map("predicted_expenses") @db.Decimal(15, 2)
+  predictedBalance  Decimal? @map("predicted_balance") @db.Decimal(15, 2)
+  confidence        Decimal  @map("confidence") @db.Decimal(3, 2) // 0.00 - 1.00
+  
+  // Breakdown por categoria (JSON)
+  categoryBreakdown Json?   @map("category_breakdown")
+  
+  // Metadata
+  algorithm       String   // WEIGHTED_MOVING_AVG, LINEAR_REGRESSION, AI_ENHANCED
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@index([userId, predictionType, createdAt(sort: Desc)])
+  @@map("prediction_history")
+}
+
+// 🆕 Detecção de anomalias
+model AnomalyDetection {
+  id              String      @id @default(uuid())
+  userId          String      @map("user_id")
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactionId   String?     @map("transaction_id")
+  transaction     Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  
+  // Tipo de anomalia
+  anomalyType     String      @map("anomaly_type") // HIGH_VALUE, UNUSUAL_TIME, NEW_MERCHANT, FREQUENCY_SPIKE
+  severity        String      // LOW, MEDIUM, HIGH, CRITICAL
+  anomalyScore    Decimal     @map("anomaly_score") @db.Decimal(3, 2) // 0.00 - 1.00
+  
+  // Detalhes da anomalia
+  description     String
+  expectedValue   Decimal?    @map("expected_value") @db.Decimal(15, 2)
+  actualValue     Decimal?    @map("actual_value") @db.Decimal(15, 2)
+  deviation       Decimal?    @map("deviation") @db.Decimal(15, 2) // Percentual de desvio
+  
+  // Contexto histórico
+  historicalAverage Decimal?  @map("historical_average") @db.Decimal(15, 2)
+  historicalStdDev  Decimal?  @map("historical_std_dev") @db.Decimal(15, 2)
+  
+  // Analise da IA
+  aiAnalysis      String?     @map("ai_analysis") @db.Text  
+  
+  // Status
+  isNotified      Boolean     @default(false) @map("is_notified")
+  isDismissed     Boolean     @default(false) @map("is_dismissed")
+  dismissedAt     DateTime?   @map("dismissed_at")
+  
+  detectedAt      DateTime    @default(now()) @map("detected_at")
+  
+  @@index([userId, severity, isDismissed])
+  @@index([userId, detectedAt(sort: Desc)])
+  @@map("anomaly_detections")
 }

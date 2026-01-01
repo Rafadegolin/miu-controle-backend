@@ -40,6 +40,8 @@ A maioria das pessoas desiste de controlar suas finanças porque registrar cada 
 - 💸 **Transações Completas** (despesas, receitas, transferências)
 - 🎨 **19 Categorias Padrão** pré-configuradas com cores e ícones
 - 📊 **Analytics Avançado** (estatísticas mensais, breakdown por categoria)
+- 🔮 **Predictive Analytics (IA)** - Previsão de gastos, saúde financeira e detecção de anomalias
+- 🧠 **Categorização Inteligente** - IA (Gemini/OpenAI) categoriza automaticamente transações
 - ⚡ **Cache com Redis** - 93% de redução no tempo de resposta
 - ✅ **Validações Robustas** com class-validator
 - 📖 **Documentação Swagger** automática e interativa
@@ -51,8 +53,9 @@ A maioria das pessoas desiste de controlar suas finanças porque registrar cada 
 
 - [x] **Cache com Redis** - Performance e otimização ✅
 - [x] **Categorização Automática** - IA aprende seus padrões de gasto ✅
-- [ ] **Orçamentos** - Definir limites mensais por categoria
-- [ ] **Objetivos (Potes Virtuais)** - Guardar dinheiro para metas específicas  
+- [x] **Predictive Analytics** - Previsão de futuro e anomalias ✅
+- [x] **Orçamentos** - Definir limites mensais por categoria ✅
+- [x] **Objetivos (Potes Virtuais)** - Guardar dinheiro, links de compra e uploads ✅
 - [ ] **Notificações Bancárias** - Registro automático via SMS (Android)
 - [ ] **Open Banking** - Integração com Pluggy/Belvo
 - [ ] **SaaS/Assinaturas** - AbacatePay para planos Pro e Family
