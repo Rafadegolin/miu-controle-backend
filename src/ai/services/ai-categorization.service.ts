@@ -1,42 +1,41 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { EncryptionService } from '../../common/services/encryption.service';
 import { AiUsageService } from './ai-usage.service';
 import { OpenAiService } from './openai.service';
+import { GeminiService } from './gemini.service';
+import { AiKeyManagerService } from './ai-key-manager.service';
 import { OpenAI } from 'openai';
 
 /**
  * AI Categorization Service
  * 
- * Uses GPT-4o-mini to automatically categorize transactions based on:
- * - Transaction description, amount, merchant, date/time
- * - User's available categories
- * - Historical similar transactions
- * 
- * Threshold: Only applies category if confidence >= 0.7
+ * Automatically categorize transactions using either OpenAI or Gemini based on user preference.
+ * - Uses AiKeyManager for key retrieval and model selection
+ * - Supports fallback logic (future)
+ * - Threshold: Only applies category if confidence >= 0.7
  */
 @Injectable()
-export class AiCategorizationService extends OpenAiService {
-  protected readonly logger = new Logger(AiCategorizationService.name);
+export class AiCategorizationService {
+  private readonly logger = new Logger(AiCategorizationService.name);
 
   constructor(
     private prisma: PrismaService,
-    private encryptionService: EncryptionService,
     private aiUsageService: AiUsageService,
-  ) {
-    super();
-  }
+    private openAiService: OpenAiService,
+    private geminiService: GeminiService,
+    private aiKeyManager: AiKeyManagerService,
+  ) {}
 
   /**
    * Categorize a transaction using AI
    * @param userId - User ID
    * @param transaction - Transaction data
-   * @returns Category ID, confidence, and reasoning (or null if no confident prediction)
+   * @returns Category ID, confidence, and reasoning
    */
   async categorizeTransaction(
     userId: string,
     transaction: {
-      id?: string; // Optional, for tracking
+      id?: string;
       description: string;
       amount: number;
       merchant?: string;
@@ -48,38 +47,14 @@ export class AiCategorizationService extends OpenAiService {
     reasoning: string;
   }> {
     try {
-      // 1. Check if user has AI configured
-      const aiConfig = await this.prisma.userAiConfig.findUnique({
-        where: { userId },
-      });
-
-      if (!aiConfig || !aiConfig.isAiEnabled) {
-        this.logger.debug(`AI not configured for user ${userId}`);
-        return {
-          categoryId: null,
-          confidence: 0,
-          reasoning: 'IA não configurada para este usuário',
-        };
-      }
-
-      // 2. Check monthly limit
-      const withinLimit = await this.aiUsageService.checkMonthlyLimit(userId);
-      if (!withinLimit) {
-        this.logger.warn(`User ${userId} exceeded monthly token limit`);
-        return {
-          categoryId: null,
-          confidence: 0,
-          reasoning: 'Limite mensal de tokens excedido',
-        };
-      }
-
-      // 3. Decrypt API key
-      const apiKey = this.encryptionService.decrypt(
-        aiConfig.openaiApiKeyEncrypted,
+      // 1. Get API Key and Configuration via Key Manager
+      // This handles FREE vs PAID logic and model selection automagically
+      const { apiKey, provider, model } = await this.aiKeyManager.getApiKey(
+        userId,
+        'CATEGORIZATION',
       );
-      const client = this.initializeClient(apiKey);
 
-      // 4. Get user's categories
+      // 2. Get user's categories
       const userCategories = await this.getUserCategories(userId);
       if (userCategories.length === 0) {
         return {
@@ -89,45 +64,75 @@ export class AiCategorizationService extends OpenAiService {
         };
       }
 
-      // 5. Get similar historical transactions
+      // 3. Get similar historical transactions for context
       const similarTransactions = await this.getSimilarTransactions(
         userId,
         transaction.description,
       );
 
-      // 6. Build prompt
-      const messages = this.buildPrompt(
+      // 4. Build Prompt
+      // (The prompt structure is compatible with both LLMs)
+      const { systemPrompt, userPrompt } = this.buildPrompts(
         transaction,
         userCategories,
         similarTransactions,
       );
 
-      // 7. Call OpenAI
-      const response = await this.createChatCompletion(
-        client,
-        messages,
-        aiConfig.preferredModel,
-      );
+      let aiResponseContent = '';
+      let usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
-      // 8. Parse response
-      const result = this.parseAiResponse(response, userCategories);
-
-      // 9. Track usage
-      if (response.usage) {
-        await this.aiUsageService.trackUsage(
-          userId,
-          'CATEGORIZATION',
-          response.usage,
-          aiConfig.preferredModel,
-          transaction.id,
+      // 5. Call the appropriate AI Provider
+      if (provider === 'OPENAI') {
+        const client = this.openAiService.initializeClient(apiKey);
+        const response = await this.openAiService.createChatCompletion(
+          client,
+          [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          model,
         );
+
+        aiResponseContent = response.choices[0]?.message?.content || '';
+        usage = {
+          promptTokens: response.usage?.prompt_tokens || 0,
+          completionTokens: response.usage?.completion_tokens || 0,
+          totalTokens: response.usage?.total_tokens || 0,
+        };
+      } else {
+        // GEMINI
+        const client = this.geminiService.initializeClient(apiKey, model);
+        const response = await this.geminiService.createChatCompletion(client, [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ]);
+
+        aiResponseContent = response.content;
+        usage = response.usage;
       }
 
+      // 6. Parse Response
+      const result = this.parseAiResponse(aiResponseContent, userCategories);
+
+      // 7. Track Usage
+      await this.aiUsageService.trackUsage(
+        userId,
+        'CATEGORIZATION',
+        {
+          prompt_tokens: usage.promptTokens,
+          completion_tokens: usage.completionTokens,
+          total_tokens: usage.totalTokens,
+        },
+        model,
+        transaction.id,
+      );
+
       this.logger.debug(
-        `AI categorization: user=${userId}, category=${result.categoryId}, confidence=${result.confidence}`,
+        `AI Categorization (${provider}/${model}): user=${userId}, cat=${result.categoryId}, conf=${result.confidence}`,
       );
 
       return result;
+
     } catch (error) {
       this.logger.error(
         `AI categorization failed for user ${userId}: ${error.message}`,
@@ -137,7 +142,7 @@ export class AiCategorizationService extends OpenAiService {
       await this.aiUsageService.trackFailure(
         userId,
         'CATEGORIZATION',
-        'gpt-4o-mini',
+        'unknown',
         error.message,
       );
 
@@ -149,15 +154,14 @@ export class AiCategorizationService extends OpenAiService {
     }
   }
 
-  /**
-   * Get user's categories
-   */
+  // ... (Helper methods remain similar but adapted for composition) ...
+
   private async getUserCategories(userId: string) {
     return this.prisma.category.findMany({
       where: {
         OR: [
-          { userId }, // User's custom categories
-          { isSystem: true }, // System categories
+          { userId },
+          { isSystem: true },
         ],
       },
       select: {
@@ -172,11 +176,7 @@ export class AiCategorizationService extends OpenAiService {
     });
   }
 
-  /**
-   * Get similar historical transactions for context
-   */
   private async getSimilarTransactions(userId: string, description: string) {
-    // Get recent transactions with categories (last 100)
     const recentTransactions = await this.prisma.transaction.findMany({
       where: {
         userId,
@@ -184,65 +184,37 @@ export class AiCategorizationService extends OpenAiService {
       },
       include: {
         category: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-          },
+          select: { id: true, name: true, type: true },
         },
       },
-      orderBy: {
-        date: 'desc',
-      },
+      orderBy: { date: 'desc' },
       take: 100,
     });
 
-    if (recentTransactions.length === 0) {
-      return [];
-    }
+    if (recentTransactions.length === 0) return [];
 
-    // Simple keyword matching (could be improved with vector similarity)
     const keywords = description.toLowerCase().split(' ');
-    const similarTransactions = recentTransactions
+    return recentTransactions
       .map((t) => {
         const descLower = t.description.toLowerCase();
-        const matchCount = keywords.filter((keyword) =>
-          descLower.includes(keyword),
-        ).length;
-
+        const matchCount = keywords.filter((k) => descLower.includes(k)).length;
         return {
           transaction: t,
           similarity: matchCount / keywords.length,
         };
       })
-      .filter((t) => t.similarity > 0.3) // At least 30% keyword match
+      .filter((t) => t.similarity > 0.3)
       .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 5) // Top 5 most similar
+      .slice(0, 5)
       .map((t) => t.transaction);
-
-    return similarTransactions;
   }
 
-  /**
-   * Build prompt for OpenAI with context
-   */
-  private buildPrompt(
-    transaction: {
-      description: string;
-      amount: number;
-      merchant?: string;
-      date: Date;
-    },
-    userCategories: Array<{
-      id: string;
-      name: string;
-      type: string;
-      icon: string | null;
-    }>,
+  private buildPrompts(
+    transaction: { description: string; amount: number; merchant?: string; date: Date },
+    userCategories: any[],
     similarTransactions: any[],
-  ): OpenAI.Chat.ChatCompletionMessageParam[] {
+  ): { systemPrompt: string; userPrompt: string } {
     const systemPrompt = `Você é um assistente especializado em categorização de transações financeiras.
-
 Sua tarefa é analisar uma transação e sugerir a categoria mais apropriada com base em:
 1. Descrição da transação
 2. Valor
@@ -254,33 +226,24 @@ REGRAS IMPORTANTES:
 - A confiança deve estar entre 0 e 1
 - Apenas sugira uma categoria se tiver confiança >= 0.7
 - Se não tiver certeza, retorne confidence < 0.7 e categoryId null
-- Base sua decisão principalmente no histórico do usuário
 - Considere o tipo da transação (EXPENSE, INCOME, TRANSFER)
 
 FORMATO DE RESPOSTA (JSON):
 {
   "categoryId": "uuid-da-categoria" ou null,
   "confidence": 0.85,
-  "reasoning": "Breve explicação (máx 100 caracteres)"
+  "reasoning": "Breve explicação"
 }`;
 
-    const dayOfWeek = transaction.date.toLocaleDateString('pt-BR', {
-      weekday: 'long',
-    });
-    const hour = transaction.date.getHours();
-
     let userPrompt = `Categorize a seguinte transação:
-
 📝 TRANSAÇÃO:
 - Descrição: "${transaction.description}"
 - Valor: R$ ${transaction.amount.toFixed(2)}`;
 
-    if (transaction.merchant) {
-      userPrompt += `\n- Estabelecimento: ${transaction.merchant}`;
-    }
-
-    userPrompt += `\n- Data: ${transaction.date.toLocaleDateString('pt-BR')} (${dayOfWeek}, ${hour}h)
-
+    if (transaction.merchant) userPrompt += `\n- Estabelecimento: ${transaction.merchant}`;
+    
+    userPrompt += `\n- Data: ${transaction.date.toLocaleDateString('pt-BR')}
+    
 📁 CATEGORIAS DISPONÍVEIS:`;
 
     userCategories.forEach((cat) => {
@@ -288,108 +251,56 @@ FORMATO DE RESPOSTA (JSON):
     });
 
     if (similarTransactions.length > 0) {
-      userPrompt += `\n\n📊 HISTÓRICO DE TRANSAÇÕES SIMILARES DO USUÁRIO:`;
+      userPrompt += `\n\n📊 HISTÓRICO:`;
       similarTransactions.forEach((t) => {
-        userPrompt += `\n- "${t.description}" (R$ ${parseFloat(t.amount.toString()).toFixed(2)}) → ${t.category.name} (${t.category.type})`;
+        userPrompt += `\n- "${t.description}" (R$ ${Number(t.amount).toFixed(2)}) → ${t.category.name}`;
       });
-    } else {
-      userPrompt += `\n\n📊 Não há histórico de transações similares.`;
     }
 
-    userPrompt += `\n\nAnalise e retorne o JSON.`;
-
-    return [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ];
+    return { systemPrompt, userPrompt };
   }
 
-  /**
-   * Parse AI response and validate
-   */
   private parseAiResponse(
-    response: OpenAI.Chat.ChatCompletion,
+    content: string,
     userCategories: Array<{ id: string; name: string }>,
   ): {
     categoryId: string | null;
     confidence: number;
     reasoning: string;
   } {
-    const content = response.choices[0]?.message?.content;
-
     if (!content) {
-      return {
-        categoryId: null,
-        confidence: 0,
-        reasoning: 'Resposta vazia da IA',
-      };
+      return { categoryId: null, confidence: 0, reasoning: 'Resposta vazia da IA' };
     }
 
     try {
-      // Try to extract JSON from response (AI might add markdown)
+      // Find JSON object in response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        this.logger.warn('No JSON found in AI response:', content);
-        return {
-          categoryId: null,
-          confidence: 0,
-          reasoning: 'Formato de resposta inválido',
-        };
+         // Fallback default
+         return { categoryId: null, confidence: 0, reasoning: 'Formato inválido' };
       }
 
       const json = JSON.parse(jsonMatch[0]);
+      const confidence = Math.max(0, Math.min(1, Number(json.confidence) || 0));
 
-      // Validate structure
-      if (
-        typeof json.confidence !== 'number' ||
-        typeof json.reasoning !== 'string'
-      ) {
-        return {
-          categoryId: null,
-          confidence: 0,
-          reasoning: 'Estrutura de resposta inválida',
-        };
-      }
-
-      // Validate confidence range
-      const confidence = Math.max(0, Math.min(1, json.confidence));
-
-      // If confidence too low, don't suggest category
       if (confidence < 0.7) {
-        return {
-          categoryId: null,
-          confidence,
-          reasoning: json.reasoning || 'Confiança baixa',
-        };
+        return { categoryId: null, confidence, reasoning: json.reasoning || 'Confiança baixa' };
       }
 
-      // Validate category exists
       if (json.categoryId) {
-        const categoryExists = userCategories.some(
-          (c) => c.id === json.categoryId,
-        );
-
+        const categoryExists = userCategories.some(c => c.id === json.categoryId);
         if (!categoryExists) {
-          return {
-            categoryId: null,
-            confidence: 0,
-            reasoning: 'Categoria sugerida não existe',
-          };
+          return { categoryId: null, confidence: 0, reasoning: 'Categoria inexistente' };
         }
       }
 
       return {
         categoryId: json.categoryId || null,
         confidence,
-        reasoning: json.reasoning || 'Sem explicação',
+        reasoning: json.reasoning || '',
       };
-    } catch (error) {
-      this.logger.error('Failed to parse AI response:', content);
-      return {
-        categoryId: null,
-        confidence: 0,
-        reasoning: 'Erro ao processar resposta da IA',
-      };
+    } catch (e) {
+      return { categoryId: null, confidence: 0, reasoning: 'Erro no parse' };
     }
   }
 }

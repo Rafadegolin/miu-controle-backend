@@ -20,15 +20,15 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EncryptionService } from '../../common/services/encryption.service';
 import { OpenAiService } from '../services/openai.service';
+import { GeminiService } from '../services/gemini.service';
 import { SaveAiConfigDto, UpdateAiConfigDto, TestApiKeyDto } from '../dto/ai-config.dto';
-import { CorrectCategoryDto } from '../dto/correct-category.dto';
 import { AuditService } from '../../audit/audit.service';
 import { AuditAction } from '../../common/enums/audit-action.enum';
 import { AuditEntity } from '../../common/enums/audit-entity.enum';
 
 /**
  * Controller for managing AI configuration
- * Allows users to save OpenAI API keys and configure AI settings
+ * Allows users to save OpenAI/Gemini API keys and configure AI settings
  */
 @ApiTags('AI Configuration')
 @Controller('ai/config')
@@ -39,11 +39,12 @@ export class AiConfigController {
     private prisma: PrismaService,
     private encryptionService: EncryptionService,
     private openAiService: OpenAiService,
+    private geminiService: GeminiService,
     private auditService: AuditService,
   ) {}
 
   /**
-   * Save AI configuration (API key + settings)
+   * Save AI configuration (API keys + settings)
    */
   @Post()
   @ApiOperation({ summary: 'Save AI configuration' })
@@ -53,35 +54,55 @@ export class AiConfigController {
     @CurrentUser('id') userId: string,
     @Body() dto: SaveAiConfigDto,
   ) {
-    // 1. Test API key before saving
-    const isValid = await this.openAiService.testApiKey(dto.openaiApiKey);
-    if (!isValid) {
-      throw new Error('API key inválida. Verifique sua chave OpenAI.');
+    let openaiEncrypted: string | undefined;
+    let geminiEncrypted: string | undefined;
+
+    // 1. Validate and Encrypt OpenAI Key
+    if (dto.openaiApiKey) {
+      const isValid = await this.openAiService.testApiKey(dto.openaiApiKey);
+      if (!isValid) {
+        throw new Error('API key OpenAI inválida.');
+      }
+      openaiEncrypted = this.encryptionService.encrypt(dto.openaiApiKey);
     }
 
-    // 2. Encrypt API key
-    const encrypted = this.encryptionService.encrypt(dto.openaiApiKey);
+    // 2. Validate and Encrypt Gemini Key
+    if (dto.geminiApiKey) {
+      const isValid = await this.geminiService.testApiKey(dto.geminiApiKey);
+      if (!isValid) {
+        throw new Error('API key Gemini inválida.');
+      }
+      geminiEncrypted = this.encryptionService.encrypt(dto.geminiApiKey);
+    }
 
-    // 3. Upsert configuration
+    // 3. Prepare data for upset
+    const data = {
+      isAiEnabled: dto.isAiEnabled ?? true,
+      monthlyTokenLimit: dto.monthlyTokenLimit ?? 1000000,
+      categorizationModel: dto.categorizationModel ?? 'gpt-4o-mini',
+      analyticsModel: dto.analyticsModel ?? 'gemini-1.5-flash',
+      lastTestedAt: new Date(),
+      isKeyValid: true,
+      // Only update keys if provided
+      ...(openaiEncrypted && { openaiApiKeyEncrypted: openaiEncrypted }),
+      ...(geminiEncrypted && { geminiApiKeyEncrypted: geminiEncrypted }),
+    };
+
+    // 4. Upsert configuration
     const config = await this.prisma.userAiConfig.upsert({
       where: { userId },
       create: {
         userId,
-        openaiApiKeyEncrypted: encrypted,
-        isAiEnabled: dto.isAiEnabled ?? true,
-        monthlyTokenLimit: dto.monthlyTokenLimit ?? 1000000,
-        preferredModel: dto.preferredModel ?? 'gpt-4o-mini',
-        lastTestedAt: new Date(),
-        isKeyValid: true,
+        openaiApiKeyEncrypted: openaiEncrypted, // Can be null if only gemini provided
+        geminiApiKeyEncrypted: geminiEncrypted,
+        isAiEnabled: data.isAiEnabled,
+        monthlyTokenLimit: data.monthlyTokenLimit,
+        categorizationModel: data.categorizationModel,
+        analyticsModel: data.analyticsModel,
+        lastTestedAt: data.lastTestedAt,
+        isKeyValid: data.isKeyValid,
       },
-      update: {
-        openaiApiKeyEncrypted: encrypted,
-        isAiEnabled: dto.isAiEnabled ?? true,
-        monthlyTokenLimit: dto.monthlyTokenLimit,
-        preferredModel: dto.preferredModel,
-        lastTestedAt: new Date(),
-        isKeyValid: true,
-      },
+      update: data,
     });
 
     // 📝 Audit log
@@ -90,7 +111,11 @@ export class AiConfigController {
       action: AuditAction.CREATE,
       entity: AuditEntity.AI_CONFIG,
       entityId: config.id,
-      after: { isAiEnabled: config.isAiEnabled, preferredModel: config.preferredModel },
+      after: {
+        isAiEnabled: config.isAiEnabled,
+        categorizationModel: config.categorizationModel,
+        analyticsModel: config.analyticsModel,
+      },
     });
 
     return {
@@ -98,14 +123,17 @@ export class AiConfigController {
       config: {
         isAiEnabled: config.isAiEnabled,
         monthlyTokenLimit: config.monthlyTokenLimit,
-        preferredModel: config.preferredModel,
+        categorizationModel: config.categorizationModel,
+        analyticsModel: config.analyticsModel,
+        hasOpenAiKey: !!config.openaiApiKeyEncrypted,
+        hasGeminiKey: !!config.geminiApiKeyEncrypted,
         lastTestedAt: config.lastTestedAt,
       },
     };
   }
 
   /**
-   * Get current AI configuration (without API key)
+   * Get current AI configuration (without API keys)
    */
   @Get()
   @ApiOperation({ summary: 'Get AI configuration' })
@@ -117,11 +145,14 @@ export class AiConfigController {
       select: {
         isAiEnabled: true,
         monthlyTokenLimit: true,
-        preferredModel: true,
+        categorizationModel: true,
+        analyticsModel: true,
         lastTestedAt: true,
         isKeyValid: true,
         createdAt: true,
         updatedAt: true,
+        openaiApiKeyEncrypted: true,
+        geminiApiKeyEncrypted: true,
       },
     });
 
@@ -134,12 +165,21 @@ export class AiConfigController {
 
     return {
       configured: true,
-      ...config,
+      isAiEnabled: config.isAiEnabled,
+      monthlyTokenLimit: config.monthlyTokenLimit,
+      categorizationModel: config.categorizationModel,
+      analyticsModel: config.analyticsModel,
+      lastTestedAt: config.lastTestedAt,
+      isKeyValid: config.isKeyValid,
+      hasOpenAiKey: !!config.openaiApiKeyEncrypted,
+      hasGeminiKey: !!config.geminiApiKeyEncrypted,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt,
     };
   }
 
   /**
-   * Update AI configuration (settings only, not API key)
+   * Update AI configuration (settings only, not API keys)
    */
   @Patch()
   @ApiOperation({ summary: 'Update AI configuration' })
@@ -153,12 +193,14 @@ export class AiConfigController {
       data: {
         isAiEnabled: dto.isAiEnabled,
         monthlyTokenLimit: dto.monthlyTokenLimit,
-        preferredModel: dto.preferredModel,
+        categorizationModel: dto.categorizationModel,
+        analyticsModel: dto.analyticsModel,
       },
       select: {
         isAiEnabled: true,
         monthlyTokenLimit: true,
-        preferredModel: true,
+        categorizationModel: true,
+        analyticsModel: true,
         updatedAt: true,
       },
     });
@@ -178,7 +220,7 @@ export class AiConfigController {
   }
 
   /**
-   * Delete AI configuration (removes API key)
+   * Delete AI configuration (removes API keys)
    */
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -207,17 +249,24 @@ export class AiConfigController {
    * Test an API key without saving it
    */
   @Post('test')
-  @ApiOperation({ summary: 'Test OpenAI API key' })
+  @ApiOperation({ summary: 'Test API key' })
   @ApiResponse({ status: 200, description: 'API key is valid' })
   @ApiResponse({ status: 400, description: 'API key is invalid' })
   async testKey(@Body() dto: TestApiKeyDto) {
-    const isValid = await this.openAiService.testApiKey(dto.openaiApiKey);
+    let isValid = false;
+    let message = 'Nenhuma chave fornecida';
+
+    if (dto.openaiApiKey) {
+      isValid = await this.openAiService.testApiKey(dto.openaiApiKey);
+      message = isValid ? 'API key OpenAI válida' : 'API key OpenAI inválida';
+    } else if (dto.geminiApiKey) {
+      isValid = await this.geminiService.testApiKey(dto.geminiApiKey);
+      message = isValid ? 'API key Gemini válida' : 'API key Gemini inválida';
+    }
 
     return {
       valid: isValid,
-      message: isValid
-        ? 'API key válida'
-        : 'API key inválida. Verifique sua chave OpenAI.',
+      message,
     };
   }
 }

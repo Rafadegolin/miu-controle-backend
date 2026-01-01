@@ -19,7 +19,7 @@ export class OpenAiService {
    * @param apiKey - Decrypted API key (from EncryptionService)
    * @returns OpenAI client instance
    */
-  protected initializeClient(apiKey: string): OpenAI {
+  public initializeClient(apiKey: string): OpenAI {
     if (!apiKey || !apiKey.startsWith('sk-')) {
       throw new Error('Invalid OpenAI API key format');
     }
@@ -39,7 +39,7 @@ export class OpenAiService {
    * @param options - Additional options
    * @returns Chat completion response
    */
-  protected async createChatCompletion(
+  public async createChatCompletion(
     client: OpenAI,
     messages: OpenAI.Chat.ChatCompletionMessageParam[],
     model: string = 'gpt-4o-mini',
@@ -71,7 +71,7 @@ export class OpenAiService {
    * Handle OpenAI API errors with specific error messages
    * @param error - Error from OpenAI API
    */
-  protected handleOpenAiError(error: any): void {
+  public handleOpenAiError(error: any): void {
     // Never log the full error (may contain API key)
     const errorMessage = error?.message || 'Unknown error';
     const statusCode = error?.status || error?.response?.status;
@@ -131,7 +131,7 @@ export class OpenAiService {
    * @param completionTokens - Number of completion tokens
    * @returns Estimated cost in USD
    */
-  protected calculateCost(
+  public calculateCost(
     promptTokens: number,
     completionTokens: number,
   ): number {

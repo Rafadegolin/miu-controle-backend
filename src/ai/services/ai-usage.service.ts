@@ -185,6 +185,9 @@ export class AiUsageService {
       'gpt-4-turbo': { input: 10.0, output: 30.0 },
       'gpt-4': { input: 30.0, output: 60.0 },
       'gpt-3.5-turbo': { input: 0.5, output: 1.5 },
+      // Gemini Pricing (Approx. Dec 2024)
+      'gemini-1.5-flash': { input: 0.075, output: 0.30 },
+      'gemini-1.5-pro': { input: 1.25, output: 5.00 },
     };
 
     // Default to gpt-4o-mini pricing if model not found
