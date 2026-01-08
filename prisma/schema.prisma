@@ -103,6 +103,7 @@ model Category {
   color           String       @default("#94A3B8")
   icon            String?
   isSystem        Boolean      @default(false) @map("is_system")
+  isEssential     Boolean      @default(true) @map("is_essential") // Issue #45
   budgetAllocated Decimal?     @map("budget_allocated") @db.Decimal(15, 2)
   createdAt       DateTime     @default(now()) @map("created_at")
 
@@ -113,12 +114,30 @@ model Category {
   // AI Relations
   originalFeedbacks  AiCategorizationFeedback[] @relation("OriginalCategory")
   correctedFeedbacks AiCategorizationFeedback[] @relation("CorrectedCategory")
-  predictions        CategoryPrediction[] // 🆕
+  predictions        CategoryPrediction[] // 
 
   recurringTransactions RecurringTransaction[]
 
   @@index([userId, type])
   @@map("categories")
+}
+
+//  PLANO DE OBJETIVOS (Issue #45)
+model GoalPlan {
+  id             String   @id @default(uuid())
+  goalId         String   @unique @map("goal_id")
+  goal           Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  
+  monthlyDeposit Decimal  @map("monthly_deposit") @db.Decimal(15,2)
+  isViable       Boolean  @map("is_viable")
+  
+  // Plano de Ação (JSON)
+  actionPlan     Json     @map("action_plan") 
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  
+  @@map("goal_plans")
 }
 
 enum CategoryType {
@@ -240,6 +259,9 @@ model Goal {
   hierarchyLevel       Int         @default(0) @map("hierarchy_level")
   isBlocked            Boolean     @default(false) @map("is_blocked")
   distributionStrategy GoalDistributionStrategy @default(PROPORTIONAL) @map("distribution_strategy")
+  
+  // 🆕 PLANO DE OBJETIVOS (Issue #45)
+  plan                 GoalPlan?
 
   // 🆕 CAMPOS DE IMAGEM
   imageUrl      String? @map("image_url")

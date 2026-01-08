@@ -34,6 +34,7 @@ import { AiModule } from './ai/ai.module';
 import { PredictionsModule } from './predictions/predictions.module';
 import { ProjectionsModule } from './projections/projections.module';
 import { AnalysisModule } from './analysis/analysis.module';
+import { PlanningModule } from './planning/planning.module';
 
 @Module({
   imports: [
@@ -114,7 +115,7 @@ import { AnalysisModule } from './analysis/analysis.module';
         ttl: 900000,  // 15 minutos
         limit: 500,   // 500 requisições por 15 min
       },
-    ]),
+    ]), PlanningModule,
   ],
   providers: [
     // 🚦 ThrottlerGuard global
