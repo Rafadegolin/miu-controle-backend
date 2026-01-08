@@ -38,7 +38,29 @@ export class GoalsService {
     private cacheService: CacheService,
   ) {}
 
-  async create(userId: string, createGoalDto: CreateGoalDto) {
+  async getHierarchy(userId: string) {
+    // Busca apenas objetivos RAIZ (nível 0 ou sem pai) e traz filhos recursivamente
+    // Prisma não tem suporte nativo a recursão infinita no 'include', então vamos pegar até nivel 4 manualmente
+    const includeLevel = {
+        children: {
+            include: {
+                children: {
+                    include: {
+                        children: true // Nível 3 (pai=0, filho=1, neto=2, bisneto=3)
+                    }
+                }
+            }
+        }
+    };
+
+    return this.prisma.goal.findMany({
+        where: { userId, parentId: null },
+        include: includeLevel,
+        orderBy: { priority: 'desc' }
+    });
+  }
+
+  async create(userId: string, createGoalDto: any) { // Using any for extended DTO (custom)
     const targetDate = createGoalDto.targetDate
       ? new Date(createGoalDto.targetDate)
       : null;
@@ -46,6 +68,17 @@ export class GoalsService {
     // Validar data no futuro
     if (targetDate && targetDate < new Date()) {
       throw new BadRequestException('Data objetivo deve ser no futuro');
+    }
+
+    // Validar Hierarquia (Maximum Depth 4)
+    let hierarchyLevel = 0;
+    if (createGoalDto.parentId) {
+        const parent = await this.prisma.goal.findUnique({ where: { id: createGoalDto.parentId } });
+        if (!parent) throw new BadRequestException('Objetivo pai não encontrado');
+        if (parent.userId !== userId) throw new ForbiddenException('Acesso negado ao objetivo pai');
+        
+        hierarchyLevel = parent.hierarchyLevel + 1;
+        if (hierarchyLevel > 3) throw new BadRequestException('Profundidade máxima atingida (4 níveis)');
     }
 
     return this.prisma.goal.create({
@@ -60,6 +93,10 @@ export class GoalsService {
         priority: createGoalDto.priority || 3,
         status: 'ACTIVE',
         currentAmount: 0,
+        // New Fields
+        parentId: createGoalDto.parentId,
+        hierarchyLevel,
+        distributionStrategy: createGoalDto.distributionStrategy
       },
     });
   }
@@ -203,76 +240,112 @@ export class GoalsService {
     userId: string,
     contributeDto: ContributeGoalDto,
   ) {
-    const goal = await this.findOne(id, userId);
-
-    if (goal.status !== 'ACTIVE') {
-      throw new BadRequestException(
-        'Só é possível contribuir para objetivos ativos',
-      );
-    }
+    const goal = await this.prisma.goal.findUnique({
+      where: { id },
+      include: { children: true }
+    });
+    
+    if (!goal) throw new NotFoundException('Objetivo não encontrado');
+    if (goal.userId !== userId) throw new ForbiddenException('Sem permissão');
+    if (goal.status !== 'ACTIVE') throw new BadRequestException('Só é possível contribuir para objetivos ativos');
 
     // Validar transação se fornecida
     if (contributeDto.transactionId) {
       const transaction = await this.prisma.transaction.findUnique({
         where: { id: contributeDto.transactionId },
       });
-
-      if (!transaction || transaction.userId !== userId) {
-        throw new NotFoundException('Transação não encontrada');
-      }
+      if (!transaction || transaction.userId !== userId) throw new NotFoundException('Transação não encontrada');
     }
 
     const date = contributeDto.date ? new Date(contributeDto.date) : new Date();
 
-    // Criar contribuição
-    const contribution = await this.prisma.goalContribution.create({
-      data: {
-        goalId: id,
-        transactionId: contributeDto.transactionId,
-        amount: contributeDto.amount,
-        date,
-      },
-    });
+    // LÓGICA DE DISTRIBUIÇÃO (Issue #65)
+    // Se tiver filhos, distribuir
+    if (goal.children.length > 0) {
+        if (goal.distributionStrategy === 'PROPORTIONAL') {
+            await this.distributeProportional(goal, contributeDto.amount, userId);
+        } else if (goal.distributionStrategy === 'SEQUENTIAL') {
+            await this.distributeSequential(goal, contributeDto.amount, userId);
+        } else {
+            // Default or Manual (se manual, apenas joga no pai por enquanto ou exige endpoint especifico, vamos assumir proporcional como fallback)
+            await this.distributeProportional(goal, contributeDto.amount, userId);
+        }
+        // Recalcula o pai
+        await this.updateAggregatedProgress(goal.id);
+        
+        // Retorna estado atualizado
+        return this.findOne(id, userId);
+    } 
+    
+    // Se for folha, comportamento normal
+    return this.addContribution(id, contributeDto.amount, userId, contributeDto.transactionId, date);
+  }
 
-    // Atualizar valor atual do objetivo
-    const newCurrentAmount = Number(goal.currentAmount) + contributeDto.amount;
-    const targetAmount = Number(goal.targetAmount);
+  // --- HIERARCHY HELPERS (Issue #65) ---
 
-    const updateData: any = {
-      currentAmount: newCurrentAmount,
-    };
+  private async addContribution(goalId: string, amount: number, userId: string, transactionId?: string, date = new Date()) {
+      const contribution = await this.prisma.goalContribution.create({
+          data: { goalId, transactionId, amount, date }
+      });
+      
+      const goal = await this.prisma.goal.findUnique({ where: { id: goalId } });
+      const newAmount = Number(goal.currentAmount) + amount;
+      
+      let updateData: any = { currentAmount: newAmount };
+      if (newAmount >= Number(goal.targetAmount) && goal.status === 'ACTIVE') {
+          updateData.status = 'COMPLETED';
+          updateData.completedAt = new Date();
+          // Notificar
+          try { await this.notificationsService.checkGoalAchieved(goalId); } catch(e) {}
+      }
 
-    // Se atingiu ou ultrapassou a meta, marcar como completado
-    if (newCurrentAmount >= targetAmount && goal.status === 'ACTIVE') {
-      updateData.status = 'COMPLETED';
-      updateData.completedAt = new Date();
-    }
+      await this.prisma.goal.update({ where: { id: goalId }, data: updateData });
 
-    const updatedGoal = await this.prisma.goal.update({
-      where: { id },
-      data: updateData,
-    });
+      return { contribution, goal: { ...goal, ...updateData } };
+  }
 
-    // VERIFICAR PROGRESSO E CRIAR NOTIFICAÇÕES (SE NECESSÁRIO)
-    try {
-      await this.notificationsService.checkGoalAchieved(id);
-    } catch (error) {
-      // Não quebrar o fluxo se falhar notificação
-      console.error('Erro ao verificar progresso da meta:', error);
-    }
+  private async distributeProportional(parent: any, amount: number, userId: string) {
+      const totalTarget = parent.children.reduce((sum, child) => sum + Number(child.targetAmount), 0);
+      
+      if (totalTarget === 0) {
+          const share = amount / parent.children.length;
+          for (const child of parent.children) await this.addContribution(child.id, share, userId);
+          return;
+      }
 
-    return {
-      contribution,
-      goal: {
-        ...updatedGoal,
-        percentage: this.calculatePercentage(
-          updatedGoal.currentAmount,
-          updatedGoal.targetAmount,
-        ),
-        remaining:
-          Number(updatedGoal.targetAmount) - Number(updatedGoal.currentAmount),
-      },
-    };
+      for (const child of parent.children) {
+          const weight = Number(child.targetAmount) / totalTarget;
+          const share = amount * weight;
+          await this.addContribution(child.id, share, userId);
+      }
+  }
+
+  private async distributeSequential(parent: any, amount: number, userId: string) {
+      const sortedChildren = parent.children.sort((a,b) => b.priority - a.priority);
+      
+      let remaining = amount;
+      for (const child of sortedChildren) {
+          if (remaining <= 0) break;
+          const missing = Number(child.targetAmount) - Number(child.currentAmount);
+          if (missing <= 0) continue; 
+
+          const toAdd = Math.min(remaining, missing);
+          await this.addContribution(child.id, toAdd, userId);
+          remaining -= toAdd;
+      }
+  }
+
+  private async updateAggregatedProgress(parentId: string) {
+      const parent = await this.prisma.goal.findUnique({ where: { id: parentId }, include: { children: true } });
+      if(!parent) return;
+
+      const totalCurrent = parent.children.reduce((sum, child) => sum + Number(child.currentAmount), 0);
+      await this.prisma.goal.update({
+          where: { id: parentId },
+          data: { currentAmount: totalCurrent }
+      });
+      
+      if (parent.parentId) await this.updateAggregatedProgress(parent.parentId);
   }
 
   async withdraw(id: string, userId: string, amount: number) {
