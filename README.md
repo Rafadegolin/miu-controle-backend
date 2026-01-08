@@ -818,6 +818,23 @@ O sistema combina dois motores para traçar o futuro financeiro:
 - `GET /projections/cash-flow?months=6&scenario=REALISTIC`: Retorna evolução mensal (Receitas x Despesas x Saldo).
 - `GET /projections/balance-forecast?months=12`: Retorna apenas o saldo final previsto.
 
+### 📅 Análise Mensal Inteligente
+
+Gera relatórios automáticos comparando o desempenho do mês com o histórico.
+
+#### 🔎 O que é analisado?
+- **Variação Mensal**: Comparação percentual de Receitas e Despesas vs. Mês anterior.
+- **Insights**: Geração automática de frases sobre seu desempenho (ex: "Você economizou 20% a mais!").
+- **Anomalias**: Detecção de desvios significativos.
+
+#### 🤖 Automação
+Um Job roda todo dia **1º de cada mês às 08:00**, fecha o relatório do mês anterior e envia um **Resumo por Email**.
+
+#### 📊 Endpoints
+- `GET /analysis/monthly-comparison?month=YYYY-MM`: Relatório completo.
+- `GET /analysis/latest`: Último relatório fechado.
+
+
 
 
 ---
