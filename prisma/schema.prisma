@@ -44,6 +44,7 @@ model User {
   aiUsageMetrics        AiUsageMetric[]
   aiCategorizationFeedbacks AiCategorizationFeedback[]
   predictionHistory     PredictionHistory[]
+  categoryPredictions   CategoryPrediction[] // 🆕
   anomalyDetections     AnomalyDetection[]
   lastAiTrainingAt      DateTime?  @map("last_ai_training_at")
 
@@ -111,6 +112,7 @@ model Category {
   // AI Relations
   originalFeedbacks  AiCategorizationFeedback[] @relation("OriginalCategory")
   correctedFeedbacks AiCategorizationFeedback[] @relation("CorrectedCategory")
+  predictions        CategoryPrediction[] // 🆕
 
   recurringTransactions RecurringTransaction[]
 
@@ -687,4 +689,30 @@ model AnomalyDetection {
   @@index([userId, severity, isDismissed])
   @@index([userId, detectedAt(sort: Desc)])
   @@map("anomaly_detections")
+}
+
+// 🆕 Previsão por Categoria (Issue #47)
+model CategoryPrediction {
+  id          String   @id @default(uuid())
+  categoryId  String   @map("category_id")
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month       DateTime // O mês para o qual esta previsão é (ex: 2025-02-01)
+  
+  predicted   Decimal  @db.Decimal(15, 2)
+  actual      Decimal? @db.Decimal(15, 2) // Preenchido após o fechamento do mês
+  
+  confidence  Decimal  @db.Decimal(5, 2) // 0-100%
+  lowerBound  Decimal? @map("lower_bound") @db.Decimal(15, 2)
+  upperBound  Decimal? @map("upper_bound") @db.Decimal(15, 2)
+  
+  factors     Json     // { seasonality: 1.2, events: ["Natal"] }
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, categoryId, month])
+  @@index([userId, month])
+  @@map("category_predictions")
 }

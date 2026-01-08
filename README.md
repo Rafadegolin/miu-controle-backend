@@ -782,6 +782,25 @@ A arquitetura AI é extensível para:
 - 📱 **Bank Notifications** - Processar SMS do banco
 - 💬 **Financial Assistant** - Chat inteligente
 
+### 🔮 Previsão de Despesas Variáveis (Math-based)
+
+O sistema utiliza algoritmos estatísticos híbridos para prever gastos futuros em categorias variáveis (ex: Alimentação, Lazer), fornecendo precisão sem custos de API de IA.
+
+#### 🧮 Algoritmo (Weighted Moving Average + Seasonality)
+O motor de previsão analisa o histórico de transações e aplica pesos temporais e fatores sazonais:
+
+1. **Identificação**: Calcula o Coeficiente de Variação (CV) para detectar categorias voláteis.
+2. **Cálculo Base**: 
+   `Base = (Média 3 Meses * 0.5) + (Média 6 Meses * 0.3) + (Mesmo Mês Ano Anterior * 0.2)`
+3. **Ajuste Sazonal**: Multiplica pelo fator de sazonalidade (ex: Dezembro costuma ser 40% maior que a média anual).
+   `Final = Base * FatorSazonal`
+4. **Confiança**: Calcula intervalo de confiança baseado no Desvio Padrão.
+
+#### 📊 Endpoints
+- `GET /predictions/variable-expenses?month=YYYY-MM` - Lista previsões do mês
+- `GET /predictions/category/:categoryId` - Detalhes de cálculo para uma categoria
+
+
 ---
 
 ## 📚 Documentação da API
