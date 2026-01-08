@@ -32,6 +32,7 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { CommonModule } from './common/common.module';
 import { AiModule } from './ai/ai.module';
 import { PredictionsModule } from './predictions/predictions.module';
+import { ProjectionsModule } from './projections/projections.module';
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { PredictionsModule } from './predictions/predictions.module';
     CommonModule, // Global services (EncryptionService)
     AiModule, // AI services (Categorization, Usage tracking)
     PredictionsModule, // Variable Expense Predictions (Issue #47)
+    ProjectionsModule, // Cash Flow Projections (Issue #43)
     // 🚦 Rate Limiting
     ThrottlerModule.forRoot([
       {
