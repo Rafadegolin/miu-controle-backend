@@ -232,6 +232,15 @@ model Goal {
   priority      Int        @default(3)
   status        GoalStatus @default(ACTIVE)
 
+  // 🆕 HIERARQUIA DE OBJETIVOS (Issue #65)
+  parentId             String?     @map("parent_id")
+  parent               Goal?       @relation("GoalHierarchy", fields: [parentId], references: [id])
+  children             Goal[]      @relation("GoalHierarchy")
+  
+  hierarchyLevel       Int         @default(0) @map("hierarchy_level")
+  isBlocked            Boolean     @default(false) @map("is_blocked")
+  distributionStrategy GoalDistributionStrategy @default(PROPORTIONAL) @map("distribution_strategy")
+
   // 🆕 CAMPOS DE IMAGEM
   imageUrl      String? @map("image_url")
   imageKey      String? @map("image_key")
@@ -249,7 +258,15 @@ model Goal {
 
   @@index([userId, status])
   @@index([userId, status, createdAt(sort: Desc)])
+  @@index([parentId]) // Index for hierarchy traversals
   @@map("goals")
+}
+
+enum GoalDistributionStrategy {
+  PROPORTIONAL
+  SEQUENTIAL
+  PRIORITY
+  MANUAL
 }
 
 enum GoalStatus {

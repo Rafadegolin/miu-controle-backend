@@ -63,6 +63,12 @@ export class GoalsController {
     return this.goalsService.getSummary(user.id);
   }
 
+  @Get('hierarchy')
+  @ApiOperation({ summary: 'Listar hierarquia de objetivos (Árvore)' })
+  getHierarchy(@CurrentUser() user) {
+      return this.goalsService.getHierarchy(user.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Buscar objetivo por ID' })
   findOne(@Param('id') id: string, @CurrentUser() user) {
