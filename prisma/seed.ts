@@ -51,18 +51,18 @@ async function main() {
   console.log('📁 Criando categorias...');
   // Categorias padrão
   const categoriesData = [
-    { id: 'cat-alimentacao', name: 'Alimentação', type: CategoryType.EXPENSE, color: '#EF4444', icon: '🍽️' },
-    { id: 'cat-transporte', name: 'Transporte', type: CategoryType.EXPENSE, color: '#F59E0B', icon: '🚗' },
-    { id: 'cat-moradia', name: 'Moradia', type: CategoryType.EXPENSE, color: '#8B5CF6', icon: '🏠' },
-    { id: 'cat-saude', name: 'Saúde', type: CategoryType.EXPENSE, color: '#EC4899', icon: '🏥' },
-    { id: 'cat-educacao', name: 'Educação', type: CategoryType.EXPENSE, color: '#3B82F6', icon: '📚' },
-    { id: 'cat-lazer', name: 'Lazer', type: CategoryType.EXPENSE, color: '#10B981', icon: '🎮' },
-    { id: 'cat-compras', name: 'Compras', type: CategoryType.EXPENSE, color: '#6366F1', icon: '🛍️' },
-    { id: 'cat-contas', name: 'Contas Fixas', type: CategoryType.EXPENSE, color: '#14B8A6', icon: '📄' },
-    { id: 'cat-assinaturas', name: 'Assinaturas', type: CategoryType.EXPENSE, color: '#A855F7', icon: '📱' },
-    { id: 'cat-salario', name: 'Salário', type: CategoryType.INCOME, color: '#10B981', icon: '💰' },
-    { id: 'cat-freelance', name: 'Freelance', type: CategoryType.INCOME, color: '#06B6D4', icon: '💻' },
-    { id: 'cat-investimentos', name: 'Investimentos', type: CategoryType.INCOME, color: '#84CC16', icon: '�' },
+    { id: 'cat-alimentacao', name: 'Alimentação', type: CategoryType.EXPENSE, color: '#EF4444', icon: '🍽️', isEssential: true },
+    { id: 'cat-transporte', name: 'Transporte', type: CategoryType.EXPENSE, color: '#F59E0B', icon: '🚗', isEssential: true },
+    { id: 'cat-moradia', name: 'Moradia', type: CategoryType.EXPENSE, color: '#8B5CF6', icon: '🏠', isEssential: true },
+    { id: 'cat-saude', name: 'Saúde', type: CategoryType.EXPENSE, color: '#EC4899', icon: '🏥', isEssential: true },
+    { id: 'cat-educacao', name: 'Educação', type: CategoryType.EXPENSE, color: '#3B82F6', icon: '📚', isEssential: true },
+    { id: 'cat-lazer', name: 'Lazer', type: CategoryType.EXPENSE, color: '#10B981', icon: '🎮', isEssential: false },
+    { id: 'cat-compras', name: 'Compras', type: CategoryType.EXPENSE, color: '#6366F1', icon: '🛍️', isEssential: false },
+    { id: 'cat-contas', name: 'Contas Fixas', type: CategoryType.EXPENSE, color: '#14B8A6', icon: '📄', isEssential: true },
+    { id: 'cat-assinaturas', name: 'Assinaturas', type: CategoryType.EXPENSE, color: '#A855F7', icon: '📱', isEssential: false },
+    { id: 'cat-salario', name: 'Salário', type: CategoryType.INCOME, color: '#10B981', icon: '💰', isEssential: false }, // Income doesn't use isEssential logic usually but safer to set default or false
+    { id: 'cat-freelance', name: 'Freelance', type: CategoryType.INCOME, color: '#06B6D4', icon: '💻', isEssential: false },
+    { id: 'cat-investimentos', name: 'Investimentos', type: CategoryType.INCOME, color: '#84CC16', icon: '📈', isEssential: false },
   ];
 
   for (const cat of categoriesData) {
