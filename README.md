@@ -800,6 +800,25 @@ O motor de previsão analisa o histórico de transações e aplica pesos tempora
 - `GET /predictions/variable-expenses?month=YYYY-MM` - Lista previsões do mês
 - `GET /predictions/category/:categoryId` - Detalhes de cálculo para uma categoria
 
+### 📈 Projeção de Fluxo de Caixa (Cenários)
+
+Feature que permite visualizar o saldo futuro com base no histórico e nas transações recorrentes.
+
+#### 🧠 Lógica de Projeção
+O sistema combina dois motores para traçar o futuro financeiro:
+1. **Componente Fixo**: Transações recorrentes ativas (ex: Salário, Aluguel).
+2. **Componente Variável**: Previsões estatísticas de categorias variáveis (da Issue #47).
+
+#### 🎭 Cenários Disponíveis
+- **Realista**: Usa a média ponderada padrão para gastos variáveis.
+- **Otimista**: Assume gastos variáveis **menores** (Média - 1 Desvio Padrão).
+- **Pessimista**: Assume gastos variáveis **maiores** (Média + 1 Desvio Padrão).
+
+#### 📊 Endpoints
+- `GET /projections/cash-flow?months=6&scenario=REALISTIC`: Retorna evolução mensal (Receitas x Despesas x Saldo).
+- `GET /projections/balance-forecast?months=12`: Retorna apenas o saldo final previsto.
+
+
 
 ---
 
