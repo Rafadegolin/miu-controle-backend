@@ -38,6 +38,7 @@ import { PlanningModule } from './planning/planning.module';
 import { EmergencyFundModule } from './emergency-fund/emergency-fund.module';
 import { ScenariosModule } from './scenarios/scenarios.module';
 import { AffordabilityModule } from './affordability/affordability.module';
+import { InflationSimulatorModule } from './inflation-simulator/inflation-simulator.module';
 
 @Module({
   imports: [
@@ -123,6 +124,7 @@ import { AffordabilityModule } from './affordability/affordability.module';
     EmergencyFundModule,
     ScenariosModule,
     AffordabilityModule,
+    InflationSimulatorModule,
   ],
   providers: [
     // 🚦 ThrottlerGuard global
