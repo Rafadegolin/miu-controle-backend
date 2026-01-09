@@ -39,6 +39,7 @@ import { EmergencyFundModule } from './emergency-fund/emergency-fund.module';
 import { ScenariosModule } from './scenarios/scenarios.module';
 import { AffordabilityModule } from './affordability/affordability.module';
 import { InflationSimulatorModule } from './inflation-simulator/inflation-simulator.module';
+import { ProactiveAlertsModule } from './proactive-alerts/proactive-alerts.module';
 
 @Module({
   imports: [
@@ -125,6 +126,7 @@ import { InflationSimulatorModule } from './inflation-simulator/inflation-simula
     ScenariosModule,
     AffordabilityModule,
     InflationSimulatorModule,
+    ProactiveAlertsModule,
   ],
   providers: [
     // 🚦 ThrottlerGuard global
