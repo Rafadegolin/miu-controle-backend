@@ -6,6 +6,7 @@ import {
   BudgetPeriod,
   GoalStatus,
   RecurrenceFrequency,
+  AlertPriority
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -261,8 +262,24 @@ async function main() {
       
       const calcDelta = (curr, old) => old === 0 ? 0 : ((curr - old) / old) * 100;
 
-      await prisma.monthlyReport.create({
-          data: {
+      await prisma.monthlyReport.upsert({
+          where: {
+              userId_month: {
+                  userId: testUser.id,
+                  month: stats.month
+              }
+          },
+          update: {
+              totalIncome: stats.income,
+              totalExpense: stats.expense,
+              balance: stats.balance,
+              comparisonPrev: {
+                  incomeDiff: calcDelta(stats.income, prevStats.income),
+                  expenseDiff: calcDelta(stats.expense, prevStats.expense),
+                  balanceDiff: calcDelta(stats.balance, prevStats.balance),
+              }
+          },
+          create: {
               userId: testUser.id,
               month: stats.month,
               totalIncome: stats.income,
@@ -297,7 +314,7 @@ async function main() {
       }
   });
 
-  await prisma.goal.create({
+  const viagemGoal = await prisma.goal.create({
       data: {
           userId: testUser.id,
           name: 'Viagem Europa',
@@ -307,11 +324,35 @@ async function main() {
           targetDate: new Date(today.getFullYear() + 1, 6, 1),
           color: '#3B82F6',
           icon: '✈️',
-          status: GoalStatus.ACTIVE
+          status: GoalStatus.ACTIVE,
+          // Issue #45 - Goal Plan
+          plan: {
+            create: {
+                monthlyDeposit: 1250.00,
+                isViable: true,
+                actionPlan: {
+                    recommendations: ['Reduzir gastos com Lazer em 10%'],
+                    stepByStep: ['Passo 1: Definir voos']
+                }
+            }
+          }
       }
   });
 
-  // ==================== RECORRÊNCIA ====================
+  // ==================== COLCHÃO FINANCEIRO (Issue #51) ====================
+  console.log('🛡️ Criando Reserva de Emergência...');
+  await prisma.emergencyFund.create({
+      data: {
+          userId: testUser.id,
+          targetAmount: 30000.00, // 6 meses de ~5k
+          currentAmount: 15000.00,
+          monthsCovered: 3.0,
+          monthlyContribution: 500.00,
+          linkedGoalId: viagemGoal.id // Corrigido para Single Relation
+      }
+  });
+
+  // ==================== RECORRÊNCIA (Issue #48 Dependency) ====================
   console.log('🔁 Criando transações recorrentes...');
   // Cria a lógica base para que o sistema gere as próximas
   await prisma.recurringTransaction.create({
@@ -331,6 +372,47 @@ async function main() {
           autoCreate: true
       }
   });
+
+  // Bill expiring soon (for Proactive Alert testing)
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  await prisma.recurringTransaction.create({
+      data: {
+          userId: testUser.id,
+          categoryId: 'cat-assinaturas',
+          accountId: accounts[0].id,
+          type: TransactionType.EXPENSE,
+          amount: 55.90,
+          description: 'Netflix Premium',
+          merchant: 'Netflix',
+          frequency: RecurrenceFrequency.MONTHLY,
+          interval: 1,
+          dayOfMonth: tomorrow.getDate(),
+          startDate: new Date(2024, 0, 1),
+          nextOccurrence: tomorrow, // VENCE AMANHÃ!
+          autoCreate: true
+      }
+  });
+
+  // ==================== ALERTAS PROATIVOS (Issue #48) ====================
+  console.log('🚨 Criando alertas iniciais...');
+  // Importante: AlertPriority deve ser importado se for usar enum literal no Prisma
+  try {
+      // Usando any ou string se o TS reclamar do Enum não exportado no seed context as vezes
+      await prisma.proactiveAlert.create({
+        data: {
+            userId: testUser.id,
+            type: 'BILL_DUE',
+            priority: 'WARNING', // Garante que bate com o Enum do schema
+            message: 'Atenção: Netflix Premium vence amanhã (R$ 55,90).',
+            aiInsight: 'Dica: Você tem saldo suficiente no Nubank para cobrir.',
+            actionable: true,
+            actionUrl: '/dashboard/transactions'
+        }
+      });
+  } catch (e) {
+      console.log('Skipping proactive alert seed if model update not fully applied yet.');
+  }
 
   console.log('\n🎉 SEED COMPLETO FINALIZADO! 🎉');
 }
