@@ -35,6 +35,7 @@ import { PredictionsModule } from './predictions/predictions.module';
 import { ProjectionsModule } from './projections/projections.module';
 import { AnalysisModule } from './analysis/analysis.module';
 import { PlanningModule } from './planning/planning.module';
+import { EmergencyFundModule } from './emergency-fund/emergency-fund.module';
 
 @Module({
   imports: [
@@ -115,7 +116,7 @@ import { PlanningModule } from './planning/planning.module';
         ttl: 900000,  // 15 minutos
         limit: 500,   // 500 requisições por 15 min
       },
-    ]), PlanningModule,
+    ]), PlanningModule, EmergencyFundModule,
   ],
   providers: [
     // 🚦 ThrottlerGuard global

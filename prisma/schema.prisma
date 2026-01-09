@@ -49,6 +49,8 @@ model User {
   anomalyDetections         AnomalyDetection[]
   lastAiTrainingAt          DateTime?                  @map("last_ai_training_at")
 
+  emergencyFund             EmergencyFund?
+
   @@map("users")
 }
 
@@ -277,6 +279,7 @@ model Goal {
   completedAt DateTime? @map("completed_at")
 
   contributions GoalContribution[]
+  emergencyFunds EmergencyFund[]
 
   @@index([userId, status])
   @@index([userId, status, createdAt(sort: Desc)])
@@ -784,4 +787,36 @@ model CategoryPrediction {
   @@unique([userId, categoryId, month])
   @@index([userId, month])
   @@map("category_predictions")
+}
+
+// 🆕 COLCHÃO FINANCEIRO (Issue #51)
+model EmergencyFund {
+  id                  String   @id @default(uuid())
+  userId              String   @unique @map("user_id")
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetAmount        Decimal  @map("target_amount") @db.Decimal(15, 2)
+  currentAmount       Decimal  @default(0) @map("current_amount") @db.Decimal(15, 2)
+  monthsCovered       Decimal  @default(0) @map("months_covered") @db.Decimal(5, 2)
+  monthlyContribution Decimal? @map("monthly_contribution") @db.Decimal(15, 2)
+  linkedGoalId        String?  @map("linked_goal_id")
+  linkedGoal          Goal?    @relation(fields: [linkedGoalId], references: [id], onDelete: SetNull)
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  withdrawals         EmergencyFundWithdrawal[]
+
+  @@map("emergency_funds")
+}
+
+model EmergencyFundWithdrawal {
+  id          String        @id @default(uuid())
+  fundId      String        @map("fund_id")
+  fund        EmergencyFund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+  amount      Decimal       @db.Decimal(15, 2)
+  reason      String
+  approved    Boolean       @default(false)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  @@map("emergency_fund_withdrawals")
 }
