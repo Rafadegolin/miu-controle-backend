@@ -138,4 +138,25 @@ export class GeminiService {
 
     return (promptTokens / 1_000_000) * inputPrice + (completionTokens / 1_000_000) * outputPrice;
   }
+  /**
+   * Refine text using Gemini
+   */
+  async enhanceText(text: string, apiKey: string): Promise<string> {
+    try {
+      const model = this.initializeClient(apiKey, 'gemini-1.5-flash');
+      
+      const prompt = `Você é um consultor financeiro pessoal experiente e empático.
+      Melhore a seguinte recomendação financeira para torná-la mais clara, acionável e motivadora para o usuário.
+      Mantenha o tom profissional mas amigável. Seja conciso (máximo 2 frases).
+      
+      Recomendação original: "${text}"`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text().trim();
+    } catch (error) {
+      this.logger.warn(`Failed to enhance text with Gemini: ${error.message}`);
+      return text; // Fallback to original text
+    }
+  }
 }

@@ -47,6 +47,8 @@ export class AiKeyManagerService {
     // Map features to model config types
     if ((feature as string) === 'CATEGORIZATION' || feature === AiFeatureType.CATEGORIZATION) {
        selectedModel = aiConfig?.categorizationModel || 'gpt-4o-mini';
+    } else if ((feature as string) === 'RECOMMENDATIONS' || feature === AiFeatureType.RECOMMENDATIONS) { // 🆕
+       selectedModel = aiConfig?.recommendationModel || 'gpt-4o-mini';
     } else {
        // PREDICTIVE_ANALYTICS, ANALYTICS, etc defaults to analyticsModel
        selectedModel = aiConfig?.analyticsModel || 'gemini-1.5-flash';

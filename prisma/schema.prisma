@@ -51,6 +51,7 @@ model User {
 
   emergencyFund             EmergencyFund?
   proactiveAlerts           ProactiveAlert[]
+  recommendations           Recommendation[]
 
   @@map("users")
 }
@@ -623,6 +624,7 @@ model UserAiConfig {
   // Provider preferences (Granular per feature)
   categorizationModel String @default("gpt-4o-mini") @map("categorization_model")
   analyticsModel      String @default("gemini-1.5-flash") @map("analytics_model")
+  recommendationModel String @default("gpt-4o-mini") @map("recommendation_model")
   // Models suportados na UI: 
   // - gpt-4o-mini, gpt-4o
   // - gemini-1.5-flash, gemini-1.5-pro
@@ -668,6 +670,7 @@ enum AiFeatureType {
   CATEGORIZATION
   PREDICTIVE_ANALYTICS // 🆕
   ANOMALY_DETECTION // 🆕
+  RECOMMENDATIONS // 🆕
   OCR
   BANK_NOTIFICATION
   ASSISTANT
@@ -798,6 +801,8 @@ model EmergencyFund {
   targetAmount        Decimal  @map("target_amount") @db.Decimal(15, 2)
   currentAmount       Decimal  @default(0) @map("current_amount") @db.Decimal(15, 2)
   monthsCovered       Decimal  @default(0) @map("months_covered") @db.Decimal(5, 2)
+  recommendation      String?  @db.Text
+  
   monthlyContribution Decimal? @map("monthly_contribution") @db.Decimal(15, 2)
   linkedGoalId        String?  @map("linked_goal_id")
   linkedGoal          Goal?    @relation(fields: [linkedGoalId], references: [id], onDelete: SetNull)
@@ -810,6 +815,48 @@ model EmergencyFund {
 
   @@map("emergency_funds")
 }
+
+// 🆕 RECOMENDAÇÕES (Issue #50)
+model Recommendation {
+  id            String              @id @default(uuid())
+  userId        String              @map("user_id")
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          RecommendationType
+  category      String?             // "Gastos", "Investimentos", "Orçamento", etc.
+  title         String
+  description   String
+  impact        Float               // Economia/melhoria estimada (R$)
+  difficulty    Int                 // 1-5 (1=Fácil, 5=Difícil)
+  priority      Int                 // Score calculado (0-200)
+  status        RecommendationStatus @default(ACTIVE)
+  
+  appliedAt     DateTime?           @map("applied_at")
+  dismissedAt   DateTime?           @map("dismissed_at")
+  expiresAt     DateTime?           @map("expires_at")
+  
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@index([userId, priority(sort: Desc)])
+  @@map("recommendations")
+}
+
+enum RecommendationType {
+  REDUCE_EXPENSE
+  OPTIMIZE_BUDGET
+  SAVINGS_OPPORTUNITY
+  RISK_ALERT
+  SUBSCRIPTION_REVIEW
+}
+
+enum RecommendationStatus {
+  ACTIVE
+  APPLIED
+  DISMISSED
+  EXPIRED
+}
+
 
 model EmergencyFundWithdrawal {
   id          String        @id @default(uuid())

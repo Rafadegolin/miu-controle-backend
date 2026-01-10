@@ -144,4 +144,28 @@ export class OpenAiService {
 
     return promptCost + completionCost;
   }
+  /**
+   * Refine text using OpenAI
+   */
+  async enhanceText(text: string, apiKey: string, modelName: string = 'gpt-4o-mini'): Promise<string> {
+    try {
+      const client = this.initializeClient(apiKey);
+      
+      const response = await this.createChatCompletion(client, [
+        {
+          role: 'system',
+          content: 'Você é um consultor financeiro pessoal experiente e empático. Melhore a recomendação do usuário para ser clara, acionável e motivadora. Máximo 2 frases.'
+        },
+        {
+          role: 'user',
+          content: `Refine esta recomendação: "${text}"`
+        }
+      ], modelName);
+
+      return response.choices[0]?.message?.content?.trim() || text;
+    } catch (error) {
+      this.logger.warn(`Failed to enhance text with OpenAI: ${error.message}`);
+      return text; // Fallback to original text
+    }
+  }
 }
