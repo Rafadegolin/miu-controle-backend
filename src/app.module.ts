@@ -41,6 +41,7 @@ import { AffordabilityModule } from './affordability/affordability.module';
 import { InflationSimulatorModule } from './inflation-simulator/inflation-simulator.module';
 import { ProactiveAlertsModule } from './proactive-alerts/proactive-alerts.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
+import { HealthScoreModule } from './health-score/health-score.module';
 
 @Module({
   imports: [
@@ -129,6 +130,7 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
     InflationSimulatorModule,
     ProactiveAlertsModule,
     RecommendationsModule,
+    HealthScoreModule,
   ],
   providers: [
     // 🚦 ThrottlerGuard global

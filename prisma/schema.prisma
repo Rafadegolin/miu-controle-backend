@@ -51,9 +51,65 @@ model User {
 
   emergencyFund             EmergencyFund?
   proactiveAlerts           ProactiveAlert[]
-  recommendations           Recommendation[]
-
+  recommendations       Recommendation[]
+  healthScore           HealthScore?
+  achievements          UserAchievement[]
+  
   @@map("users")
+}
+
+// ... (keep existing enums and models) ...
+
+// ==================== HEALTH SCORE & GAMIFICATION (Issue #49) ====================
+
+model HealthScore {
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Pontuações Parciais
+  totalScore        Int      // 0-1000
+  consistencyScore  Int      // 0-300
+  budgetScore       Int      // 0-250
+  goalsScore        Int      // 0-200
+  emergencyScore    Int      // 0-150
+  diversityScore    Int      // 0-100
+  
+  level             String   // CRITICAL, ATTENTION, HEALTHY, GOOD, EXCELLENT (Armazenado como string para flexibilidade ou criar Enum)
+  
+  // AI Insights
+  aiInsights        String?  @map("ai_insights") @db.Text // Texto gerado pela IA com dicas
+  lastAiAnalysisAt  DateTime? @map("last_ai_analysis_at")
+  
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("health_scores")
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  code        String   @unique // ex: FIRST_TRANSACTION, WEEK_STREAK
+  name        String
+  description String
+  icon        String
+  points      Int      // Pontos de "XP" ou apenas indicativo
+  
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String      @map("achievement_id")
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  
+  unlockedAt    DateTime    @default(now()) @map("unlocked_at")
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
 }
 
 enum SubscriptionTier {
