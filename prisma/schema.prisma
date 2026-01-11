@@ -26,6 +26,13 @@ model Brand {
 
 
 
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
 model User {
   id               String           @id @default(uuid())
   email            String           @unique
@@ -34,10 +41,12 @@ model User {
   phone            String?
   avatarUrl        String?          @map("avatar_url")
   educationLevel    String?          @map("education_level")
+  role              Role             @default(USER)
 
   // Security & System
   emailVerified    Boolean          @default(false) @map("email_verified")
   twoFactorEnabled Boolean          @default(false) @map("two_factor_enabled")
+  isActive         Boolean          @default(true) @map("is_active")
   lastLoginAt      DateTime?        @map("last_login_at")
   
   createdAt        DateTime         @default(now()) @map("created_at")
@@ -88,6 +97,8 @@ model User {
   healthScore           HealthScore?
   achievements          UserAchievement[]
   missions              UserMission[]
+  feedbacks             Feedback[]
+  releaseReads          UserReleaseRead[]
   
   @@map("users")
 }
@@ -1047,4 +1058,62 @@ enum AlertPriority {
   WARNING
   INFO
   POSITIVE
+}
+
+// ==================== COMMUNICATION & FEEDBACK (System/Admin) ====================
+
+model ReleaseNote {
+  id          String   @id @default(uuid())
+  version     String   @unique
+  title       String
+  content     String   @db.Text // Markdown
+  publishedAt DateTime @default(now()) @map("published_at")
+  isActive    Boolean  @default(true) @map("is_active")
+  
+  reads       UserReleaseRead[]
+  @@map("release_notes")
+}
+
+model UserReleaseRead {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  releaseNoteId String      @map("release_note_id")
+  releaseNote   ReleaseNote @relation(fields: [releaseNoteId], references: [id], onDelete: Cascade)
+  readAt        DateTime    @default(now()) @map("read_at")
+  
+  @@unique([userId, releaseNoteId])
+  @@map("user_release_reads")
+}
+
+model Feedback {
+  id          String         @id @default(uuid())
+  userId      String         @map("user_id")
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        FeedbackType
+  status      FeedbackStatus @default(PENDING)
+  title       String
+  description String         @db.Text
+  attachments String[]       
+  
+  adminResponse String?      @map("admin_response") @db.Text
+  adminId       String?      @map("admin_id") // ID do admin que respondeu (opcional)
+  
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  @@map("feedbacks")
+}
+
+enum FeedbackType {
+  BUG
+  SUGGESTION
+  OTHER
+}
+
+enum FeedbackStatus {
+  PENDING
+  IN_REVIEW
+  RESOLVED
+  REJECTED
 }

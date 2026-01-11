@@ -16,6 +16,33 @@ export class MissionsService {
            orderBy: { createdAt: 'desc' }
        });
   }
+  
+  // --- ADMIN METHODS ---
+
+  async findAllTemplates() {
+      return this.prisma.mission.findMany({
+          orderBy: { title: 'asc' }
+      });
+  }
+
+  async create(data: any) {
+      return this.prisma.mission.create({ data });
+  }
+
+  async update(id: string, data: any) {
+      return this.prisma.mission.update({
+          where: { id },
+          data
+      });
+  }
+
+  async delete(id: string) {
+      // Soft delete or hard? Let's toggle active
+      return this.prisma.mission.update({
+          where: { id },
+          data: { isActive: false }
+      });
+  }
 
   async ensureWeeklyMissions(userId: string) {
       const startOfWeek = new Date();

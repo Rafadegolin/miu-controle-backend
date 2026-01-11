@@ -1,8 +1,12 @@
-import { Controller, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Request } from '@nestjs/common';
 import { GamificationService } from './gamification.service';
 import { MissionsService } from './missions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
+import { CreateMissionDto } from './dto/create-mission.dto';
 
 @ApiTags('Gamification')
 @Controller('gamification')
@@ -23,5 +27,23 @@ export class GamificationController {
   @ApiOperation({ summary: 'Get active missions' })
   async getMissions(@Request() req) {
     return this.missionsService.getActiveMissions(req.user.id);
+  }
+
+  // --- ADMIN ROUTES ---
+
+  @Post('admin/missions')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Criar nova template de missão (Admin)' })
+  createMission(@Body() dto: CreateMissionDto) {
+      return this.missionsService.create(dto);
+  }
+
+  @Get('admin/missions/templates')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Listar templates de missões (Admin)' })
+  listTemplates() {
+      return this.missionsService.findAllTemplates();
   }
 }

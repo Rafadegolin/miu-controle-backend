@@ -13,6 +13,8 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Query,
+  Param,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -28,6 +30,9 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
 @ApiTags('Usuários')
 @Controller('users')
@@ -113,5 +118,31 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Foto removida' })
   async removeAvatar(@CurrentUser() user: any) {
     return this.usersService.removeAvatar(user.id);
+  }
+
+  // --- ADMIN ENDPOINTS ---
+
+  @Get('admin/list')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Listar usuários (Admin)' })
+  findAllUsers(@Query() query: any) {
+      return this.usersService.findAllUsers(query.page, query.limit, query.search);
+  }
+
+  @Patch('admin/:id/ban')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Banir/Desbanir usuário (Admin)' })
+  toggleBan(@Param('id') id: string, @Body() body: { isActive: boolean }) {
+      return this.usersService.toggleBan(id, body.isActive);
+  }
+
+  @Patch('admin/:id/role')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Promover/Rebaixar usuário (Admin)' })
+  updateRole(@Param('id') id: string, @Body() body: { role: string }) {
+      return this.usersService.updateRole(id, body.role);
   }
 }
