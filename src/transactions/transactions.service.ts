@@ -19,6 +19,8 @@ import { WebsocketService } from '../websocket/websocket.service';
 import { WS_EVENTS } from '../websocket/events/websocket.events';
 import { AiCategorizationService } from '../ai/services/ai-categorization.service';
 
+import { BrandsService } from '../brands/brands.service';
+
 @Injectable()
 export class TransactionsService {
   constructor(
@@ -26,9 +28,11 @@ export class TransactionsService {
     private cacheService: CacheService,
     private websocketService: WebsocketService,
     private aiCategorizationService: AiCategorizationService,
+    private brandsService: BrandsService,
   ) {}
 
   async create(userId: string, createTransactionDto: CreateTransactionDto) {
+    // ... existing validation code ...
     // Validar se a conta existe e pertence ao usuário
     const account = await this.prisma.account.findUnique({
       where: { id: createTransactionDto.accountId },
@@ -62,12 +66,24 @@ export class TransactionsService {
       }
     }
 
-    // 🤖 AI CATEGORIZATION: Se categoria não fornecida, tentar categorização automática
+    // 🧠 BRAND INTELLIGENCE: Detect brand from description
+    let brandId: string | null = null;
+    try {
+        const detectedBrand = await this.brandsService.detectBrand(createTransactionDto.description);
+        if (detectedBrand) {
+            brandId = detectedBrand.id;
+        }
+    } catch(e) {
+        console.warn('Brand detection failed:', e);
+    }
+
+    // 🤖 AI CATEGORIZATION
     let aiCategoryId: string | null = null;
     let aiConfidence: number | null = null;
     let aiCategorized = false;
 
     if (!createTransactionDto.categoryId) {
+      // ... ai logic ...
       try {
         const aiResult = await this.aiCategorizationService.categorizeTransaction(
           userId,
@@ -83,28 +99,21 @@ export class TransactionsService {
 
         // Aplicar categoria se confiança >= 0.7
         if (aiResult.categoryId && aiResult.confidence >= 0.7) {
-          aiCategoryId = aiResult.categoryId;
-          aiConfidence = aiResult.confidence;
-          aiCategorized = true;
+            aiCategoryId = aiResult.categoryId;
+            aiConfidence = aiResult.confidence;
+            aiCategorized = true;
 
-          // Validar categoria sugerida pela IA
-          const suggestedCategory = await this.prisma.category.findUnique({
-            where: { id: aiResult.categoryId },
-          });
+            const suggestedCategory = await this.prisma.category.findUnique({
+                where: { id: aiResult.categoryId }
+            });
 
-          // Verificar tipo da transação vs categoria
-          if (
-            suggestedCategory &&
-            suggestedCategory.type === createTransactionDto.type
-          ) {
-            createTransactionDto.categoryId = aiResult.categoryId;
-          } else {
-            // Categoria sugerida não é compatível, ignorar
-            aiCategorized = false;
-          }
+            if (suggestedCategory && suggestedCategory.type === createTransactionDto.type) {
+                createTransactionDto.categoryId = aiResult.categoryId;
+            } else {
+                aiCategorized = false;
+            }
         }
       } catch (error) {
-        // Falha na AI não deve impedir criação da transação
         console.warn('AI categorization failed:', error.message);
       }
     }
@@ -119,6 +128,7 @@ export class TransactionsService {
         amount: createTransactionDto.amount,
         description: createTransactionDto.description,
         merchant: createTransactionDto.merchant,
+        brandId, // <--- Added brandId
         date: createTransactionDto.date
           ? new Date(createTransactionDto.date)
           : new Date(),
@@ -135,10 +145,11 @@ export class TransactionsService {
       include: {
         category: true,
         account: true,
+        brand: true, // <--- Include brand
       },
     });
 
-    // Atualizar saldo da conta
+    // ... balance update ...
     await this.updateAccountBalance(
       createTransactionDto.accountId,
       createTransactionDto.type,
@@ -146,19 +157,20 @@ export class TransactionsService {
       'ADD',
     );
 
-    // Invalidar cache do usuário
+    // ... cache invalidate ...
     await this.cacheService.invalidateUserCache(userId);
 
-    // Emitir evento WebSocket
+    // ... websocket ...
     this.websocketService.emitToUser(userId, WS_EVENTS.TRANSACTION_CREATED, {
       transactionId: transaction.id,
       accountId: transaction.accountId,
       categoryId: transaction.categoryId,
+      brand: transaction.brand, // <--- Emit brand
       type: transaction.type,
       amount: Number(transaction.amount),
       description: transaction.description,
       date: transaction.date,
-      aiCategorized: transaction.aiCategorized, // Indicar se foi categorizado por IA
+      aiCategorized: transaction.aiCategorized,
       aiConfidence: transaction.aiConfidence
         ? Number(transaction.aiConfidence)
         : null,
@@ -168,6 +180,7 @@ export class TransactionsService {
   }
 
   async findAll(userId: string, filters: FilterTransactionDto) {
+    // ... setup ...
     const take = filters.take || 50; // Default 50
     const cursor = filters.cursor;
 
@@ -185,7 +198,6 @@ export class TransactionsService {
       }),
     };
 
-    // Filtro de data
     if (filters.startDate || filters.endDate) {
       where.date = {};
       if (filters.startDate) {
@@ -196,12 +208,11 @@ export class TransactionsService {
       }
     }
 
-    // Buscar take + 1 para saber se há mais itens
     const transactions = await this.prisma.transaction.findMany({
       where,
       take: take + 1,
       ...(cursor && {
-        skip: 1, // Pular o cursor
+        skip: 1,
         cursor: { id: cursor },
       }),
       select: {
@@ -209,13 +220,13 @@ export class TransactionsService {
         amount: true,
         description: true,
         merchant: true,
+        brand: { select: { id: true, name: true, logoUrl: true, slug: true } }, // <--- Select Brand
         date: true,
         type: true,
         status: true,
         tags: true,
         notes: true,
         createdAt: true,
-        // Select seletivo para category
         category: {
           select: {
             id: true,
@@ -225,7 +236,6 @@ export class TransactionsService {
             type: true,
           },
         },
-        // Select seletivo para account
         account: {
           select: {
             id: true,
@@ -239,8 +249,8 @@ export class TransactionsService {
         date: 'desc',
       },
     });
-
-    // Verificar se há mais itens
+    // ...
+    // Verify count and return
     const hasMore = transactions.length > take;
     const items = hasMore ? transactions.slice(0, take) : transactions;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
@@ -258,6 +268,7 @@ export class TransactionsService {
       include: {
         category: true,
         account: true,
+        brand: true,
       },
     });
 

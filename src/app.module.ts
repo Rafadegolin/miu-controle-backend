@@ -43,6 +43,7 @@ import { ProactiveAlertsModule } from './proactive-alerts/proactive-alerts.modul
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { HealthScoreModule } from './health-score/health-score.module';
 import { GamificationModule } from './gamification/gamification.module';
+import { BrandsModule } from './brands/brands.module';
 
 @Module({
   imports: [
@@ -133,6 +134,7 @@ import { GamificationModule } from './gamification/gamification.module';
     RecommendationsModule,
     HealthScoreModule,
     GamificationModule,
+    BrandsModule,
   ],
   providers: [
     // 🚦 ThrottlerGuard global

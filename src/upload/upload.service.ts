@@ -77,4 +77,14 @@ export class UploadService {
   async deleteGoalImage(imageKey: string): Promise<void> {
     return this.minioService.deleteFile(imageKey);
   }
+  /**
+   * Upload genérico para qualquer bucket
+   */
+  async uploadFile(
+      file: Express.Multer.File,
+      folder: string,
+      bucket?: string
+  ): Promise<string> {
+      return this.minioService.uploadFile(file, folder, bucket);
+  }
 }

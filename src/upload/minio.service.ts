@@ -23,21 +23,22 @@ export class MinioService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.ensureBucketExists();
+    await this.ensureBucketExists(this.bucketName);
+    await this.ensureBucketExists('brand-logos');
   }
 
   /**
    * Garante que o bucket existe e está público
    */
-  private async ensureBucketExists() {
+  private async ensureBucketExists(bucketName: string) {
     try {
-      const exists = await this.minioClient.bucketExists(this.bucketName);
+      const exists = await this.minioClient.bucketExists(bucketName);
 
       if (!exists) {
-        await this.minioClient.makeBucket(this.bucketName, 'us-east-1');
-        this.logger.log(`✅ Bucket "${this.bucketName}" criado`);
+        await this.minioClient.makeBucket(bucketName, 'us-east-1');
+        this.logger.log(`✅ Bucket "${bucketName}" criado`);
       } else {
-        this.logger.log(`✅ Bucket "${this.bucketName}" já existe`);
+        this.logger.log(`✅ Bucket "${bucketName}" já existe`);
       }
 
       // CONFIGURAR POLÍTICA PÚBLICA (sempre que iniciar)
@@ -48,18 +49,18 @@ export class MinioService implements OnModuleInit {
             Effect: 'Allow',
             Principal: { AWS: ['*'] },
             Action: ['s3:GetObject'],
-            Resource: [`arn:aws:s3:::${this.bucketName}/*`],
+            Resource: [`arn:aws:s3:::${bucketName}/*`],
           },
         ],
       };
 
       await this.minioClient.setBucketPolicy(
-        this.bucketName,
+        bucketName,
         JSON.stringify(publicPolicy),
       );
 
       this.logger.log(
-        `✅ Política pública aplicada ao bucket "${this.bucketName}"`,
+        `✅ Política pública aplicada ao bucket "${bucketName}"`,
       );
     } catch (error) {
       this.logger.warn(
@@ -76,12 +77,13 @@ export class MinioService implements OnModuleInit {
   async uploadFile(
     file: Express.Multer.File,
     folder: string = 'avatars',
+    bucket: string = this.bucketName,
   ): Promise<string> {
     try {
       const fileName = `${folder}/${Date.now()}-${file.originalname}`;
 
       await this.minioClient.putObject(
-        this.bucketName,
+        bucket,
         fileName,
         file.buffer,
         file.size,
@@ -94,7 +96,7 @@ export class MinioService implements OnModuleInit {
       const protocol =
         this.configService.get('MINIO_USE_SSL') === 'true' ? 'https' : 'http';
       const endpoint = this.configService.get('MINIO_ENDPOINT');
-      const fileUrl = `${protocol}://${endpoint}/${this.bucketName}/${fileName}`;
+      const fileUrl = `${protocol}://${endpoint}/${bucket}/${fileName}`;
 
       this.logger.log(`✅ Arquivo enviado: ${fileUrl}`);
 

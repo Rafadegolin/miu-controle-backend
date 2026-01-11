@@ -137,6 +137,39 @@ async function main() {
       accounts.push(created);
   }
 
+  // ==================== MARCAS (Issue #74) ====================
+  console.log('🏷️ Criando marcas (Top 20)...');
+  const brandsData = [
+    { name: 'Netflix', slug: 'netflix', website: 'netflix.com', matchPatterns: ['netflix', 'nflx'], logoUrl: 'https://logo.clearbit.com/netflix.com' },
+    { name: 'Spotify', slug: 'spotify', website: 'spotify.com', matchPatterns: ['spotify', 'spotify inc'], logoUrl: 'https://logo.clearbit.com/spotify.com' },
+    { name: 'Uber', slug: 'uber', website: 'uber.com', matchPatterns: ['uber', 'uber trip', 'uber *trip'], logoUrl: 'https://logo.clearbit.com/uber.com' },
+    { name: 'iFood', slug: 'ifood', website: 'ifood.com.br', matchPatterns: ['ifood', 'ifood *pedidos'], logoUrl: 'https://logo.clearbit.com/ifood.com.br' },
+    { name: 'Amazon', slug: 'amazon', website: 'amazon.com.br', matchPatterns: ['amazon', 'amazon prime', 'amzn mktp'], logoUrl: 'https://logo.clearbit.com/amazon.com' },
+    { name: 'Apple', slug: 'apple', website: 'apple.com', matchPatterns: ['apple', 'apple.com/bill'], logoUrl: 'https://logo.clearbit.com/apple.com' },
+    { name: 'Mercado Livre', slug: 'mercadolivre', website: 'mercadolivre.com.br', matchPatterns: ['mercado livre', 'mercadopago'], logoUrl: 'https://logo.clearbit.com/mercadolivre.com.br' },
+    { name: 'Google', slug: 'google', website: 'google.com', matchPatterns: ['google', 'google services'], logoUrl: 'https://logo.clearbit.com/google.com' },
+    { name: 'Microsoft', slug: 'microsoft', website: 'microsoft.com', matchPatterns: ['microsoft', 'msft'], logoUrl: 'https://logo.clearbit.com/microsoft.com' },
+    { name: 'Steam', slug: 'steam', website: 'steampowered.com', matchPatterns: ['steam', 'steampowered'], logoUrl: 'https://logo.clearbit.com/steampowered.com' },
+    { name: 'PlayStation', slug: 'playstation', website: 'playstation.com', matchPatterns: ['playstation', 'sony playstation'], logoUrl: 'https://logo.clearbit.com/playstation.com' },
+    { name: 'Xbox', slug: 'xbox', website: 'xbox.com', matchPatterns: ['xbox', 'microsoft xbox'], logoUrl: 'https://logo.clearbit.com/xbox.com' },
+    { name: 'Nubank', slug: 'nubank', website: 'nubank.com.br', matchPatterns: ['nubank', 'nu pagamentos'], logoUrl: 'https://logo.clearbit.com/nubank.com.br' },
+    { name: 'Itaú', slug: 'itau', website: 'itau.com.br', matchPatterns: ['itau', 'banco itau'], logoUrl: 'https://logo.clearbit.com/itau.com.br' },
+    { name: 'McDonald\'s', slug: 'mcdonalds', website: 'mcdonalds.com.br', matchPatterns: ['mcdonalds', 'mcdonald'], logoUrl: 'https://logo.clearbit.com/mcdonalds.com.br' },
+    { name: 'Burger King', slug: 'burgerking', website: 'burgerking.com.br', matchPatterns: ['burger king', 'bk'], logoUrl: 'https://logo.clearbit.com/burgerking.com.br' },
+    { name: 'Rappi', slug: 'rappi', website: 'rappi.com.br', matchPatterns: ['rappi'], logoUrl: 'https://logo.clearbit.com/rappi.com.br' },
+    { name: '99', slug: '99app', website: '99app.com', matchPatterns: ['99app', '99 pop', '99 taxi'], logoUrl: 'https://logo.clearbit.com/99app.com' },
+    { name: 'Shell', slug: 'shell', website: 'shell.com.br', matchPatterns: ['shell', 'posto shell'], logoUrl: 'https://logo.clearbit.com/shell.com.br' },
+    { name: 'Smart Fit', slug: 'smartfit', website: 'smartfit.com.br', matchPatterns: ['smart fit', 'smartfit'], logoUrl: 'https://logo.clearbit.com/smartfit.com.br' },
+  ];
+
+  for (const b of brandsData) {
+     await prisma.brand.upsert({
+         where: { slug: b.slug },
+         update: { matchPatterns: b.matchPatterns },
+         create: { ...b, isSystem: true }
+     });
+  }
+
   // ==================== TRANSAÇÕES & HISTÓRICO ====================
   console.log('� Gerando histórico de transações (12 meses)...');
   
@@ -341,8 +374,12 @@ async function main() {
 
   // ==================== COLCHÃO FINANCEIRO (Issue #51) ====================
   console.log('🛡️ Criando Reserva de Emergência...');
-  await prisma.emergencyFund.create({
-      data: {
+  await prisma.emergencyFund.upsert({
+      where: { userId: testUser.id },
+      update: {
+        linkedGoalId: viagemGoal.id
+      },
+      create: {
           userId: testUser.id,
           targetAmount: 30000.00, // 6 meses de ~5k
           currentAmount: 15000.00,

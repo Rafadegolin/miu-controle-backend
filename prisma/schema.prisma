@@ -7,7 +7,24 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// ==================== MODELOS ====================
+
+model Brand {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  logoUrl   String   @map("logo_url")
+  website   String?
+  matchPatterns String[] @map("match_patterns")
+  isSystem  Boolean  @default(false) @map("is_system")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  transactions Transaction[]
+
+  @@map("brands")
+}
+
+
 
 model User {
   id               String           @id @default(uuid())
@@ -24,7 +41,7 @@ model User {
   lastLoginAt      DateTime?        @map("last_login_at")
   
   createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @updatedAt @map("updated_at")
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at")
   // Gamification Fields (Issue #66)
   level             Int      @default(1)
   currentXp         Int      @map("current_xp") @default(0)
@@ -285,6 +302,8 @@ model Transaction {
   amount            Decimal           @db.Decimal(15, 2)
   description       String
   merchant          String?
+  brandId           String?           @map("brand_id")
+  brand             Brand?            @relation(fields: [brandId], references: [id], onDelete: SetNull)
   date              DateTime
   isRecurring       Boolean           @default(false) @map("is_recurring")
   recurrencePattern String?           @map("recurrence_pattern")
