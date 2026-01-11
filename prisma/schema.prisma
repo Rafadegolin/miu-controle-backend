@@ -63,6 +63,13 @@ model User {
   notifications           Notification[]
   recurringTransactions   RecurringTransaction[]
   preferredCurrency       String                   @default("BRL") @map("preferred_currency")
+
+  // Onboarding & Preferences (Issue #76)
+  hasCompletedOnboarding Boolean @default(false) @map("has_completed_onboarding")
+  onboardingStep         Int     @default(0) @map("onboarding_step")
+  theme                  String  @default("system") // system, light, dark, ocean, neon
+  language               String  @default("pt-BR")
+
   auditLogs               AuditLog[]
 
   // AI Relations
@@ -766,8 +773,9 @@ model UserAiConfig {
   // Provider preferences (Granular per feature)
   categorizationModel String @default("gpt-4o-mini") @map("categorization_model")
   analyticsModel      String @default("gemini-1.5-flash") @map("analytics_model")
+  personality         String @default("educator") // conservative, investor, educator
   recommendationModel String @default("gpt-4o-mini") @map("recommendation_model")
-  // Models suportados na UI: 
+  // Models suportados na UI:
   // - gpt-4o-mini, gpt-4o
   // - gemini-1.5-flash, gemini-1.5-pro
 

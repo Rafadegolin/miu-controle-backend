@@ -44,6 +44,7 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
 import { HealthScoreModule } from './health-score/health-score.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { BrandsModule } from './brands/brands.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -135,6 +136,7 @@ import { BrandsModule } from './brands/brands.module';
     HealthScoreModule,
     GamificationModule,
     BrandsModule,
+    OnboardingModule,
   ],
   providers: [
     // 🚦 ThrottlerGuard global
