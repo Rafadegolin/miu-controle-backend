@@ -49,6 +49,9 @@ export class OnboardingService {
         theme: dto.theme || 'system',
         language: dto.language || 'pt-BR',
         preferredCurrency: dto.preferredCurrency || 'BRL',
+        fullName: dto.displayName,
+        avatarUrl: dto.avatarUrl,
+        monthlyIncome: dto.monthlyIncome,
       },
     });
 

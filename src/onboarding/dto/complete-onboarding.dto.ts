@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsIn, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CompleteOnboardingDto {
@@ -6,6 +6,21 @@ export class CompleteOnboardingDto {
   @IsString()
   @IsOptional()
   theme?: string;
+
+  @ApiProperty({ example: 'Gabriel Silva', description: 'Nome de exibição' })
+  @IsString()
+  @IsOptional()
+  displayName?: string;
+
+  @ApiProperty({ example: 2500, description: 'Renda mensal estimada' })
+  @IsNumber()
+  @IsOptional()
+  monthlyIncome?: number;
+
+  @ApiProperty({ example: 'https://bucket-url/avatar.png', description: 'URL do avatar' })
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
 
   @ApiProperty({ example: 'pt-BR', description: 'Idioma escolhido' })
   @IsString()
