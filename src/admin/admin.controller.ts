@@ -1,4 +1,4 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -7,10 +7,16 @@ import {
 } from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../common/services/cache.service';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
 @Controller('admin')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 export class AdminController {
   constructor(
     private prisma: PrismaService,
@@ -83,4 +89,22 @@ export class AdminController {
   getSlowQueries() {
     return this.prisma.getSlowQueries();
   }
+
+  @Get('dashboard/stats')
+  @ApiOperation({ summary: 'Obter estatísticas gerais do sistema' })
+  async getDashboardStats() {
+    const [totalUsers, activeUsers, totalSubscriptions, totalTransactions] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.user.count({ where: { isActive: true } }),
+      this.prisma.userSubscription.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.transaction.count()
+    ]);
+
+    return {
+       users: { total: totalUsers, active: activeUsers },
+       subscriptions: { active: totalSubscriptions },
+       system: { transactions: totalTransactions, health: 'OK' }
+    };
+  }
+
 }

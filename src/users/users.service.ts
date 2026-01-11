@@ -232,4 +232,64 @@ export class UsersService {
       message: 'Foto de perfil removida com sucesso',
     };
   }
+
+  // --- ADMIN METHODS ---
+
+  async findAllUsers(page = 1, limit = 10, search?: string) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (search) {
+        where.OR = [
+            { email: { contains: search, mode: 'insensitive' } },
+            { fullName: { contains: search, mode: 'insensitive' } }
+        ];
+    }
+
+    const [users, total] = await Promise.all([
+        this.prisma.user.findMany({
+            where,
+            skip,
+            take: Number(limit),
+            orderBy: { createdAt: 'desc' },
+            include: { subscription: true }
+        }),
+        this.prisma.user.count({ where })
+    ]);
+
+    return {
+        data: users,
+        meta: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(total / limit)
+        }
+    };
+  }
+
+  async toggleBan(userId: string, isActive: boolean) {
+      // Prevent banning super admins if logic existed, but for now simple
+      await this.prisma.user.update({
+          where: { id: userId },
+          data: { isActive }
+      });
+
+      if (!isActive) {
+          // Revoke sessions
+          await this.prisma.refreshToken.updateMany({
+              where: { userId },
+              data: { revokedAt: new Date() }
+          });
+      }
+
+      return { message: isActive ? 'User activated' : 'User banned' };
+  }
+
+  async updateRole(userId: string, role: string) {
+      return this.prisma.user.update({
+          where: { id: userId },
+          data: { role: role as any }
+      });
+  }
 }
