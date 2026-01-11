@@ -6,6 +6,8 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { GoalContributedEvent } from '../common/events/gamification.events';
 import { CreateGoalDto } from './dto/create-goal.dto';
 import { UpdateGoalDto } from './dto/update-goal.dto';
 import { ContributeGoalDto } from './dto/contribute-goal.dto';
@@ -36,6 +38,7 @@ export class GoalsService {
     private notificationsService: NotificationsService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private cacheService: CacheService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async getHierarchy(userId: string) {
@@ -300,6 +303,12 @@ export class GoalsService {
       }
 
       await this.prisma.goal.update({ where: { id: goalId }, data: updateData });
+
+      // Emit Gamification Event
+      this.eventEmitter.emit(
+        'goal.contributed',
+        new GoalContributedEvent(userId, goalId, amount),
+      );
 
       return { contribution, goal: { ...goal, ...updateData } };
   }

@@ -25,7 +25,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         id: true,
         email: true,
         fullName: true,
-        subscriptionTier: true,
+        subscription: {
+          select: {
+            plan: true,
+          },
+        },
       },
     });
 
@@ -33,6 +37,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException();
     }
 
-    return user;
+    return {
+      ...user,
+      subscriptionTier: user.subscription?.plan,
+    };
   }
 }

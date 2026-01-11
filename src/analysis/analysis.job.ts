@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { AnalysisService } from './analysis.service';
-import { MailerService } from '@nestjs-modules/mailer'; // Assuming we have this, based on package.json
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AnalysisJob {
@@ -11,7 +11,7 @@ export class AnalysisJob {
   constructor(
     private prisma: PrismaService,
     private analysisService: AnalysisService,
-    private mailerService: MailerService // Dependency injection for Email
+    private emailService: EmailService
   ) {}
 
   /**
@@ -67,16 +67,12 @@ export class AnalysisJob {
       `;
 
       try {
-        if(this.mailerService) {
-            await this.mailerService.sendMail({
-                to: user.email,
-                subject: `Miu Controle - Relatório Mensal de ${report.month.getMonth() + 1}/${report.month.getFullYear()}`,
-                html: html
-            });
-            this.logger.log(`Email sent to ${user.email}`);
-        } else {
-             this.logger.warn(`MailerService not available, skipping email for ${user.email}`);
-        }
+        await this.emailService.sendEmail(
+            user.email,
+            `Miu Controle - Relatório Mensal de ${report.month.getMonth() + 1}/${report.month.getFullYear()}`,
+            html
+        );
+        this.logger.log(`Email sent to ${user.email}`);
       } catch (e) {
           this.logger.error(`Failed to send email to ${user.email}: ${e.message}`);
       }

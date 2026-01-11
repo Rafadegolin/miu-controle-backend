@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, Max, Min, IsArray, ValidateNested } from 'class-validator';
+import { IsNumber, IsOptional, Max, Min, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -11,8 +11,6 @@ export class CategoryInflationOverride {
     @IsNumber()
     inflationRate: number;
 }
-
-import { IsString } from 'class-validator';
 
 export class InflationSimulationDto {
   @ApiProperty({ description: 'Taxa de inflação anual projetada (%)', example: 4.5 })

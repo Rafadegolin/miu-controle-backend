@@ -51,12 +51,25 @@ export class AuthService {
         fullName: registerDto.fullName,
         passwordHash,
         emailVerified: false,
+        subscription: {
+          create: {
+            plan: 'FREE',
+            status: 'ACTIVE',
+            amount: 0,
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 100)), // Indefinite for free
+          },
+        },
       },
       select: {
         id: true,
         email: true,
         fullName: true,
-        subscriptionTier: true,
+        subscription: {
+          select: {
+            plan: true,
+          },
+        },
         emailVerified: true,
         createdAt: true,
       },
@@ -73,7 +86,10 @@ export class AuthService {
     );
 
     return {
-      user,
+      user: {
+        ...user,
+        subscriptionTier: user.subscription?.plan,
+      },
       ...tokens,
       message: 'Conta criada! Verifique seu email para ativar.',
     };
@@ -85,6 +101,13 @@ export class AuthService {
   async login(loginDto: LoginDto, userAgent?: string, ipAddress?: string) {
     const user = await this.prisma.user.findUnique({
       where: { email: loginDto.email },
+      include: {
+        subscription: {
+          select: {
+            plan: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -117,7 +140,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
-        subscriptionTier: user.subscriptionTier,
+        subscriptionTier: user.subscription?.plan,
       },
       ...tokens,
     };

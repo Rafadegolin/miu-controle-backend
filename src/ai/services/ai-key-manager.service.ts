@@ -37,7 +37,11 @@ export class AiKeyManagerService {
       this.prisma.userAiConfig.findUnique({ where: { userId } }),
       this.prisma.user.findUnique({
         where: { id: userId },
-        select: { subscriptionTier: true },
+        include: {
+          subscription: {
+            select: { plan: true },
+          },
+        },
       }),
     ]);
 
@@ -58,7 +62,7 @@ export class AiKeyManagerService {
     const provider = selectedModel.startsWith('gpt') ? 'OPENAI' : 'GEMINI';
 
     // 4. Determine corporate key usage
-    const isPaidTier = user?.subscriptionTier === 'PRO' || user?.subscriptionTier === 'FAMILY';
+    const isPaidTier = user?.subscription?.plan === 'PRO' || user?.subscription?.plan === 'FAMILY';
     const usesCorporate = aiConfig?.usesCorporateKey || isPaidTier;
 
     // 5. Get appropriate API key

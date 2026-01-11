@@ -9,6 +9,6 @@ import { AiModule } from '../ai/ai.module';
   imports: [PrismaModule, AiModule],
   controllers: [HealthScoreController],
   providers: [HealthScoreService, AchievementsService],
-  exports: [HealthScoreService],
+  exports: [HealthScoreService, AchievementsService],
 })
 export class HealthScoreModule {}

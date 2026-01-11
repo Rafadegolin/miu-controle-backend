@@ -39,6 +39,7 @@ import { AnalyticsController } from './controllers/analytics.controller';
     AiKeyManagerService,
     GeminiService,
     PredictiveAnalyticsService,
+    OpenAiService,
   ],
 })
 export class AiModule {}

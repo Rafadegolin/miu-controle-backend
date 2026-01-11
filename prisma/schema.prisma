@@ -16,12 +16,21 @@ model User {
   fullName         String           @map("full_name")
   phone            String?
   avatarUrl        String?          @map("avatar_url")
-  subscriptionTier SubscriptionTier @default(FREE) @map("subscription_tier")
+  educationLevel    String?          @map("education_level")
+
+  // Security & System
   emailVerified    Boolean          @default(false) @map("email_verified")
   twoFactorEnabled Boolean          @default(false) @map("two_factor_enabled")
   lastLoginAt      DateTime?        @map("last_login_at")
+  
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt @map("updated_at")
+  // Gamification Fields (Issue #66)
+  level             Int      @default(1)
+  currentXp         Int      @map("current_xp") @default(0)
+  streakCurrent     Int      @map("streak_current") @default(0)
+  streakLongest     Int      @map("streak_longest") @default(0)
+  lastActivityDate  DateTime? @map("last_activity_date")
 
   accounts                Account[]
   categories              Category[]
@@ -54,8 +63,66 @@ model User {
   recommendations       Recommendation[]
   healthScore           HealthScore?
   achievements          UserAchievement[]
+  missions              UserMission[]
   
   @@map("users")
+}
+
+// ... (existing models) ...
+
+// ==================== GAMIFICATION (Issue #66) ====================
+
+model Mission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  title       String
+  description String
+  xpReward    Int      @map("xp_reward")
+  frequency   MissionFrequency
+  criteria    Json     // { type: "TRANSACTION_COUNT", target: 5, categoryId: "..." }
+  isActive    Boolean  @default(true) @map("is_active")
+  
+  userMissions UserMission[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("missions")
+}
+
+model UserMission {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missionId String   @map("mission_id")
+  mission   Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  
+  status    MissionStatus @default(ACTIVE)
+  progress  Int           @default(0) // Current count/amount
+  target    Int           @default(1) // Snapshot of target at creation
+  
+  completedAt DateTime?   @map("completed_at")
+  expiresAt   DateTime?   @map("expires_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@map("user_missions")
+}
+
+enum MissionFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  ONEOFF
+  DYNAMIC
+}
+
+enum MissionStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  FAILED
 }
 
 // ... (keep existing enums and models) ...

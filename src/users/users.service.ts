@@ -29,7 +29,11 @@ export class UsersService {
         fullName: true,
         phone: true,
         avatarUrl: true,
-        subscriptionTier: true,
+        subscription: {
+          select: {
+            plan: true,
+          },
+        },
         emailVerified: true,
         twoFactorEnabled: true,
         createdAt: true,
@@ -49,7 +53,10 @@ export class UsersService {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    return user;
+    return {
+      ...user,
+      subscriptionTier: user.subscription?.plan,
+    };
   }
 
   /**
