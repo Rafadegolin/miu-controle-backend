@@ -30,6 +30,7 @@ import { VerifyResetTokenDto } from './dto/verify-reset-token.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { CurrentRefreshToken } from './decorators/current-refresh-token.decorator';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @ApiTags('Autenticação')
 @Controller('auth')
@@ -66,6 +67,21 @@ export class AuthController {
     const userAgent = req.headers['user-agent'];
     const ipAddress = req.ip || req.socket.remoteAddress;
     return this.authService.login(loginDto, userAgent, ipAddress);
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Renovar access token' })
+  @ApiResponse({ status: 200, description: 'Novos tokens gerados' })
+  @ApiResponse({ status: 401, description: 'Refresh token inválido/expirado' })
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto, @Req() req: Request) {
+    const userAgent = req.headers['user-agent'];
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    return this.authService.refreshTokens(
+      refreshTokenDto.refreshToken,
+      userAgent,
+      ipAddress,
+    );
   }
 
   @Get('me')

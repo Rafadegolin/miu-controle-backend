@@ -154,7 +154,6 @@ export class AuthService {
    * Refresh tokens
    */
   async refreshTokens(
-    userId: string,
     refreshToken: string,
     userAgent?: string,
     ipAddress?: string,
@@ -165,8 +164,7 @@ export class AuthService {
 
     if (
       !tokenRecord ||
-      tokenRecord.revokedAt ||
-      tokenRecord.userId !== userId
+      tokenRecord.revokedAt
     ) {
       throw new UnauthorizedException('Token inválido');
     }
@@ -176,8 +174,12 @@ export class AuthService {
     }
 
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: tokenRecord.userId },
     });
+
+    if (!user) {
+         throw new UnauthorizedException('Usuário não encontrado');
+    }
 
     // Atualizar lastUsedAt do token atual
     await this.prisma.refreshToken.update({
