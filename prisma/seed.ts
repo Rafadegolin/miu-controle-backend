@@ -6,7 +6,8 @@ import {
   BudgetPeriod,
   GoalStatus,
   RecurrenceFrequency,
-  AlertPriority
+  AlertPriority,
+  Role
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -79,9 +80,12 @@ async function main() {
   const passwordHash = await bcrypt.hash('senha123', 10);
   const testUser = await prisma.user.upsert({
       where: { email: 'teste@miucontrole.com' },
-      update: {},
+      update: {
+          role: Role.SUPER_ADMIN
+      },
       create: {
           email: 'teste@miucontrole.com',
+          role: Role.SUPER_ADMIN,
           passwordHash,
           fullName: 'Usuário de Teste',
           phone: '11999999999',
