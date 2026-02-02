@@ -116,7 +116,7 @@ describe('PredictiveAnalyticsService', () => {
     it('should generate forecast successfully', async () => {
       mockAiKeyManager.getApiKey.mockResolvedValue({
         apiKey: 'test-key',
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
         provider: 'GEMINI',
       });
 

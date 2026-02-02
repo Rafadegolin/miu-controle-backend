@@ -19,18 +19,21 @@ export class AiKeyManagerService {
   ) {}
 
   /**
-   * Get API key and config for a specific feature
+   * Get API key and config for a specific feature with fallback support
    * @param userId User ID
    * @param feature Feature being used (CATEGORIZATION or ANALYTICS)
+   * @param allowFallback Whether to allow fallback to alternative provider/model
    */
   async getApiKey(
     userId: string,
     feature: AiFeatureType | 'CATEGORIZATION' | 'ANALYTICS',
+    allowFallback: boolean = false,
   ): Promise<{
     apiKey: string;
     isCorporate: boolean;
     provider: 'OPENAI' | 'GEMINI';
     model: string;
+    isFallback?: boolean;
   }> {
     // 1. Get user config and subscription
     const [aiConfig, user] = await Promise.all([
@@ -47,42 +50,69 @@ export class AiKeyManagerService {
 
     // 2. Determine model based on feature
     let selectedModel = '';
-    
+
     // Map features to model config types
-    if ((feature as string) === 'CATEGORIZATION' || feature === AiFeatureType.CATEGORIZATION) {
-       selectedModel = aiConfig?.categorizationModel || 'gpt-4o-mini';
-    } else if ((feature as string) === 'RECOMMENDATIONS' || feature === AiFeatureType.RECOMMENDATIONS) { // 🆕
-       selectedModel = aiConfig?.recommendationModel || 'gpt-4o-mini';
+    if (
+      (feature as string) === 'CATEGORIZATION' ||
+      feature === AiFeatureType.CATEGORIZATION
+    ) {
+      selectedModel = aiConfig?.categorizationModel || 'gemini-2.5-flash';
+    } else if (
+      (feature as string) === 'RECOMMENDATIONS' ||
+      feature === AiFeatureType.RECOMMENDATIONS
+    ) {
+      // 🆕
+      selectedModel = aiConfig?.recommendationModel || 'gemini-2.5-flash';
     } else {
-       // PREDICTIVE_ANALYTICS, ANALYTICS, etc defaults to analyticsModel
-       selectedModel = aiConfig?.analyticsModel || 'gemini-1.5-flash';
+      // PREDICTIVE_ANALYTICS, ANALYTICS, etc defaults to analyticsModel
+      selectedModel = aiConfig?.analyticsModel || 'gemini-2.5-flash';
+    }
+
+    // Normalize old/deprecated model names to current FREE tier stable model
+    if (
+      selectedModel === 'gemini-pro' ||
+      selectedModel === 'gemini-1.5-flash' ||
+      selectedModel === 'gemini-1.5-flash-latest' ||
+      selectedModel === 'gemini-1.5-flash-8b' ||
+      selectedModel === 'gemini-2.0-flash' ||
+      selectedModel === 'gemini-2.0-flash-exp'
+    ) {
+      this.logger.warn(
+        `Model ${selectedModel} detected. Using gemini-2.5-flash (FREE tier stable).`,
+      );
+      selectedModel = 'gemini-2.5-flash';
     }
 
     // 3. Determine provider from model name
     const provider = selectedModel.startsWith('gpt') ? 'OPENAI' : 'GEMINI';
 
     // 4. Determine corporate key usage
-    const isPaidTier = user?.subscription?.plan === 'PRO' || user?.subscription?.plan === 'FAMILY';
+    const isPaidTier =
+      user?.subscription?.plan === 'PRO' ||
+      user?.subscription?.plan === 'FAMILY';
     const usesCorporate = aiConfig?.usesCorporateKey || isPaidTier;
 
     // 5. Get appropriate API key
     if (usesCorporate) {
       // PAID tier: Use corporate keys
       const corporateKey = this.getCorporateKey(provider);
-      
+
       if (!corporateKey) {
         throw new Error(
           `Chave corporativa ${provider} não configurada. Contate o suporte.`,
         );
       }
 
-      this.logger.debug(`Using corporate ${provider} key for user ${userId} (${feature})`);
+      this.logger.debug(
+        `Using corporate ${provider} key for user ${userId} (${feature})`,
+      );
 
       return {
         apiKey: corporateKey,
         isCorporate: true,
         provider,
         model: selectedModel,
+        isFallback: false,
       };
     } else {
       // FREE tier: Use user's own key
@@ -111,7 +141,58 @@ export class AiKeyManagerService {
         isCorporate: false,
         provider,
         model: selectedModel,
+        isFallback: false,
       };
+    }
+  }
+
+  /**
+   * Get fallback API configuration when primary provider fails
+   * @param userId User ID
+   * @param feature Feature type
+   * @param primaryProvider The provider that failed
+   */
+  async getFallbackConfig(
+    userId: string,
+    feature: AiFeatureType | 'CATEGORIZATION' | 'ANALYTICS',
+    primaryProvider: 'OPENAI' | 'GEMINI',
+  ): Promise<{
+    apiKey: string;
+    isCorporate: boolean;
+    provider: 'OPENAI' | 'GEMINI';
+    model: string;
+    isFallback: boolean;
+  } | null> {
+    try {
+      // Try alternative provider first
+      const fallbackProvider =
+        primaryProvider === 'GEMINI' ? 'OPENAI' : 'GEMINI';
+      const corporateKey = this.getCorporateKey(fallbackProvider);
+
+      if (corporateKey) {
+        // Determine fallback model based on provider
+        const fallbackModel =
+          fallbackProvider === 'GEMINI'
+            ? 'gemini-2.5-flash' // Free tier stable model
+            : 'gpt-4o-mini'; // Use cheaper OpenAI model
+
+        this.logger.warn(
+          `Using fallback ${fallbackProvider} (${fallbackModel}) for user ${userId} (${feature}) after ${primaryProvider} failure`,
+        );
+
+        return {
+          apiKey: corporateKey,
+          isCorporate: true,
+          provider: fallbackProvider,
+          model: fallbackModel,
+          isFallback: true,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error(`Failed to get fallback config: ${error.message}`);
+      return null;
     }
   }
 
@@ -130,7 +211,10 @@ export class AiKeyManagerService {
   /**
    * Check if user has exceeded monthly token limit (FREE tier only)
    */
-  private async checkTokenLimit(userId: string, customLimit?: number): Promise<void> {
+  private async checkTokenLimit(
+    userId: string,
+    customLimit?: number,
+  ): Promise<void> {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);

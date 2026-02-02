@@ -35,7 +35,7 @@ export class NotificationsController {
     name: 'unreadOnly',
     required: false,
     type: Boolean,
-    description: 'Filtrar apenas não lidas',
+    description: 'Filtrar apenas não lidas (padrão: true)',
   })
   @ApiQuery({
     name: 'cursor',
@@ -66,9 +66,15 @@ export class NotificationsController {
     @Query('cursor') cursor?: string,
     @Query('take') take?: string,
   ) {
-    const unread = unreadOnly === 'true';
+    // Por padrão retorna apenas não lidas, a menos que seja explicitamente false
+    const unread = unreadOnly === 'false' ? false : true;
     const takeNumber = take ? Math.min(parseInt(take, 10), 100) : 50;
-    return this.notificationsService.findAll(user.id, unread, cursor, takeNumber);
+    return this.notificationsService.findAll(
+      user.id,
+      unread,
+      cursor,
+      takeNumber,
+    );
   }
 
   @Get('unread-count')
