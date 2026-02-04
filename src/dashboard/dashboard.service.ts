@@ -11,6 +11,10 @@ import {
   ImportantDateDto,
   InsightDto,
   MonthComparisonDto,
+  SpendingPaceDto,
+  WealthEvolutionDto,
+  TopCategoriesDto,
+  RecentTransactionDto,
 } from './dto/dashboard-response.dto';
 
 @Injectable()
@@ -23,9 +27,23 @@ export class DashboardService {
   async getHomeDashboard(userId: string): Promise<DashboardResponseDto> {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+    );
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    const endOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59,
+    );
 
     // Buscar todos os dados em paralelo para otimizar performance
     const [
@@ -36,6 +54,10 @@ export class DashboardService {
       budgets,
       upcomingRecurring,
       notifications,
+      spendingPace,
+      wealthEvolution,
+      topCategories,
+      recentTransactions,
     ] = await Promise.all([
       this.getAccountsSummary(userId),
       this.getMonthTransactions(userId, startOfMonth, endOfMonth),
@@ -44,10 +66,24 @@ export class DashboardService {
       this.getBudgetsSummary(userId, startOfMonth, endOfMonth),
       this.getUpcomingRecurring(userId),
       this.getNotificationsSummary(userId),
+      this.getSpendingPace(userId, startOfMonth, endOfMonth),
+      this.getWealthEvolution(userId),
+      this.getTopCategories(
+        userId,
+        startOfMonth,
+        endOfMonth,
+        startOfLastMonth,
+        endOfLastMonth,
+      ),
+      this.getRecentTransactions(userId),
     ]);
 
     // Processar dados do mês atual
-    const currentMonth = this.processCurrentMonth(currentMonthData, lastMonthData, now);
+    const currentMonth = this.processCurrentMonth(
+      currentMonthData,
+      lastMonthData,
+      now,
+    );
 
     // Gerar datas importantes
     const importantDates = this.generateImportantDates(
@@ -67,9 +103,13 @@ export class DashboardService {
     return {
       accountsSummary,
       currentMonth,
+      spendingPace,
+      wealthEvolution,
+      topCategories,
       goals,
       budgets,
       upcomingRecurring: upcomingRecurring.slice(0, 10), // Limitar a 10 próximas
+      recentTransactions,
       notifications,
       importantDates: importantDates.slice(0, 15), // Limitar a 15 próximas datas
       insights,
@@ -78,7 +118,9 @@ export class DashboardService {
   }
 
   // ==================== ACCOUNTS SUMMARY ====================
-  private async getAccountsSummary(userId: string): Promise<AccountsSummaryDto> {
+  private async getAccountsSummary(
+    userId: string,
+  ): Promise<AccountsSummaryDto> {
     const accounts = await this.prisma.account.findMany({
       where: {
         userId,
@@ -169,7 +211,9 @@ export class DashboardService {
 
     const balanceChange =
       lastData.balance !== 0
-        ? ((currentData.balance - lastData.balance) / Math.abs(lastData.balance)) * 100
+        ? ((currentData.balance - lastData.balance) /
+            Math.abs(lastData.balance)) *
+          100
         : 0;
 
     const comparison: MonthComparisonDto = {
@@ -203,9 +247,10 @@ export class DashboardService {
     const now = new Date();
 
     const goalsWithProgress = goals.map((goal) => {
-      const progress = Number(goal.targetAmount) > 0
-        ? (Number(goal.currentAmount) / Number(goal.targetAmount)) * 100
-        : 0;
+      const progress =
+        Number(goal.targetAmount) > 0
+          ? (Number(goal.currentAmount) / Number(goal.targetAmount)) * 100
+          : 0;
 
       const daysRemaining = goal.targetDate
         ? Math.ceil(
@@ -251,10 +296,7 @@ export class DashboardService {
         startDate: {
           lte: endDate,
         },
-        OR: [
-          { endDate: null },
-          { endDate: { gte: startDate } },
-        ],
+        OR: [{ endDate: null }, { endDate: { gte: startDate } }],
       },
       include: {
         category: true,
@@ -282,7 +324,8 @@ export class DashboardService {
 
         const spentAmount = Number(spent._sum.amount || 0);
         const budgetAmount = Number(budget.amount);
-        const percentage = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
+        const percentage =
+          budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
 
         let status: 'ok' | 'warning' | 'exceeded' = 'ok';
         if (percentage >= 100) status = 'exceeded';
@@ -532,5 +575,325 @@ export class DashboardService {
     }
 
     return insights;
+  }
+
+  // ==================== SPENDING PACE (RITMO DE GASTOS) ====================
+  private async getSpendingPace(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<SpendingPaceDto> {
+    // Buscar todas as transações de despesa do mês
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        type: 'EXPENSE',
+        status: 'COMPLETED',
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    // Agrupar gastos por dia
+    const dailyExpenses = new Map<string, number>();
+    transactions.forEach((t) => {
+      const dateKey = t.date.toISOString().split('T')[0];
+      const current = dailyExpenses.get(dateKey) || 0;
+      dailyExpenses.set(dateKey, current + Number(t.amount));
+    });
+
+    // Gerar dados para cada dia do mês
+    const data = [];
+    let accumulated = 0;
+    const daysInMonth = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth() + 1,
+      0,
+    ).getDate();
+    const totalExpenses = transactions.reduce(
+      (sum, t) => sum + Number(t.amount),
+      0,
+    );
+    const avgDaily = totalExpenses / daysInMonth;
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(startDate.getFullYear(), startDate.getMonth(), day);
+      const dateKey = date.toISOString().split('T')[0];
+      const daily = dailyExpenses.get(dateKey) || 0;
+      accumulated += daily;
+
+      data.push({
+        date: dateKey,
+        daily: Math.round(daily * 100) / 100,
+        accumulated: Math.round(accumulated * 100) / 100,
+        expected: Math.round(avgDaily * day * 100) / 100,
+      });
+    }
+
+    const currentDay = new Date().getDate();
+    const projectedMonthTotal = (accumulated / currentDay) * daysInMonth;
+
+    return {
+      data,
+      avgDaily: Math.round(avgDaily * 100) / 100,
+      projectedMonthTotal: Math.round(projectedMonthTotal * 100) / 100,
+    };
+  }
+
+  // ==================== WEALTH EVOLUTION (EVOLUÇÃO PATRIMONIAL) ====================
+  private async getWealthEvolution(
+    userId: string,
+  ): Promise<WealthEvolutionDto> {
+    const now = new Date();
+    const data = [];
+
+    // Buscar saldo dos últimos 6 meses
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const endOfMonth = new Date(
+        monthDate.getFullYear(),
+        monthDate.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+      );
+
+      // Calcular saldo total no final do mês
+      const accounts = await this.prisma.account.findMany({
+        where: {
+          userId,
+          isActive: true,
+          createdAt: {
+            lte: endOfMonth,
+          },
+        },
+      });
+
+      // Para cada conta, calcular o saldo no final daquele mês
+      let monthBalance = 0;
+      for (const account of accounts) {
+        // Buscar transações até o final do mês
+        const transactions = await this.prisma.transaction.findMany({
+          where: {
+            accountId: account.id,
+            status: 'COMPLETED',
+            date: {
+              lte: endOfMonth,
+            },
+          },
+        });
+
+        let accountBalance = Number(account.initialBalance) || 0;
+        transactions.forEach((t) => {
+          if (t.type === 'INCOME') {
+            accountBalance += Number(t.amount);
+          } else if (t.type === 'EXPENSE') {
+            accountBalance -= Number(t.amount);
+          }
+        });
+
+        monthBalance += accountBalance;
+      }
+
+      const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+
+      data.push({
+        month: monthKey,
+        totalBalance: Math.round(monthBalance * 100) / 100,
+        change: 0,
+        changePercentage: 0,
+      });
+    }
+
+    // Calcular mudanças entre meses
+    for (let i = 1; i < data.length; i++) {
+      const current = data[i].totalBalance;
+      const previous = data[i - 1].totalBalance;
+      const change = current - previous;
+      const changePercentage =
+        previous !== 0 ? (change / Math.abs(previous)) * 100 : 0;
+
+      data[i].change = Math.round(change * 100) / 100;
+      data[i].changePercentage = Math.round(changePercentage * 10) / 10;
+    }
+
+    const totalChange =
+      data[data.length - 1].totalBalance - data[0].totalBalance;
+    const totalChangePercentage =
+      data[0].totalBalance !== 0
+        ? (totalChange / Math.abs(data[0].totalBalance)) * 100
+        : 0;
+
+    return {
+      data,
+      totalChange: Math.round(totalChange * 100) / 100,
+      totalChangePercentage: Math.round(totalChangePercentage * 10) / 10,
+    };
+  }
+
+  // ==================== TOP CATEGORIES ====================
+  private async getTopCategories(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    lastMonthStart: Date,
+    lastMonthEnd: Date,
+  ): Promise<TopCategoriesDto> {
+    // Buscar transações do mês atual por categoria
+    const currentMonthTransactions = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        type: 'EXPENSE',
+        status: 'COMPLETED',
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        categoryId: {
+          not: null,
+        },
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    // Buscar transações do mês anterior por categoria
+    const lastMonthTransactions = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        type: 'EXPENSE',
+        status: 'COMPLETED',
+        date: {
+          gte: lastMonthStart,
+          lte: lastMonthEnd,
+        },
+        categoryId: {
+          not: null,
+        },
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    // Agrupar por categoria
+    const categoryMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        currentAmount: number;
+        lastMonthAmount: number;
+        color: string;
+        icon?: string;
+      }
+    >();
+
+    currentMonthTransactions.forEach((t) => {
+      if (!t.category) return;
+
+      const existing = categoryMap.get(t.categoryId!) || {
+        id: t.categoryId!,
+        name: t.category.name,
+        currentAmount: 0,
+        lastMonthAmount: 0,
+        color: t.category.color,
+        icon: t.category.icon || undefined,
+      };
+
+      existing.currentAmount += Number(t.amount);
+      categoryMap.set(t.categoryId!, existing);
+    });
+
+    lastMonthTransactions.forEach((t) => {
+      if (!t.category) return;
+
+      const existing = categoryMap.get(t.categoryId!) || {
+        id: t.categoryId!,
+        name: t.category.name,
+        currentAmount: 0,
+        lastMonthAmount: 0,
+        color: t.category.color,
+        icon: t.category.icon || undefined,
+      };
+
+      existing.lastMonthAmount += Number(t.amount);
+      categoryMap.set(t.categoryId!, existing);
+    });
+
+    const totalExpenses = Array.from(categoryMap.values()).reduce(
+      (sum, cat) => sum + cat.currentAmount,
+      0,
+    );
+
+    // Converter para array e ordenar por valor
+    const categories = Array.from(categoryMap.values())
+      .map((cat) => {
+        const percentage =
+          totalExpenses > 0 ? (cat.currentAmount / totalExpenses) * 100 : 0;
+        const changeFromLastMonth =
+          cat.lastMonthAmount > 0
+            ? ((cat.currentAmount - cat.lastMonthAmount) /
+                cat.lastMonthAmount) *
+              100
+            : 0;
+
+        return {
+          id: cat.id,
+          name: cat.name,
+          amount: Math.round(cat.currentAmount * 100) / 100,
+          percentage: Math.round(percentage * 10) / 10,
+          changeFromLastMonth: Math.round(changeFromLastMonth * 10) / 10,
+          color: cat.color,
+          icon: cat.icon,
+          lastMonthAmount: Math.round(cat.lastMonthAmount * 100) / 100,
+        };
+      })
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10); // Top 10 categorias
+
+    return {
+      categories,
+      totalExpenses: Math.round(totalExpenses * 100) / 100,
+    };
+  }
+
+  // ==================== RECENT TRANSACTIONS ====================
+  private async getRecentTransactions(
+    userId: string,
+  ): Promise<RecentTransactionDto[]> {
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        category: true,
+        account: true,
+      },
+      orderBy: {
+        date: 'desc',
+      },
+      take: 10,
+    });
+
+    return transactions.map((t) => ({
+      id: t.id,
+      description: t.description,
+      amount: Number(t.amount),
+      type: t.type,
+      date: t.date,
+      categoryName: t.category?.name || 'Sem categoria',
+      categoryColor: t.category?.color || '#94A3B8',
+      categoryIcon: t.category?.icon || undefined,
+      accountName: t.account.name,
+      status: t.status,
+    }));
   }
 }
