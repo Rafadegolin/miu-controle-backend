@@ -31,9 +31,9 @@ export class HealthController {
    */
   @Get()
   @HealthCheck()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Health check completo',
-    description: 'Verifica status de todos os componentes (DB, Memory, Disk)'
+    description: 'Verifica status de todos os componentes (DB, Memory, Disk)',
   })
   @ApiResponse({
     status: 200,
@@ -53,15 +53,17 @@ export class HealthController {
     return this.health.check([
       // Database (Prisma)
       () => this.prismaHealth.pingCheck('database', this.prisma),
-      
+
       // Memory (heap não deve exceder 512MB)
       () => this.memory.checkHeap('memory_heap', 512 * 1024 * 1024),
-      
+
       // Disk (deve ter pelo menos 10% livre)
-      () => this.disk.checkStorage('storage', { 
-        path: '/', 
-        thresholdPercent: 0.9, // 90% threshold
-      }),
+      // Usa C:\ no Windows ou / no Linux/Mac
+      () =>
+        this.disk.checkStorage('storage', {
+          path: process.platform === 'win32' ? 'C:\\' : '/',
+          thresholdPercent: 0.9, // 90% threshold
+        }),
     ]);
   }
 
@@ -71,9 +73,9 @@ export class HealthController {
    */
   @Get('live')
   @HealthCheck()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Liveness probe (Kubernetes)',
-    description: 'Verifica se a aplicação está viva. Falha = restart pod.'
+    description: 'Verifica se a aplicação está viva. Falha = restart pod.',
   })
   checkLive(): Promise<HealthCheckResult> {
     // Simples: apenas retorna ok se processo está rodando
@@ -86,9 +88,10 @@ export class HealthController {
    */
   @Get('ready')
   @HealthCheck()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Readiness probe (Kubernetes)',
-    description: 'Verifica se a aplicação está pronta para receber tráfego. Falha = remove do load balancer.'
+    description:
+      'Verifica se a aplicação está pronta para receber tráfego. Falha = remove do load balancer.',
   })
   checkReady() {
     return this.health.check([
@@ -102,9 +105,10 @@ export class HealthController {
    * Retorna estatísticas e métricas para monitoramento
    */
   @Get('metrics')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Métricas da aplicação',
-    description: 'Estatísticas e métricas para monitoramento (usuários, transações, performance)'
+    description:
+      'Estatísticas e métricas para monitoramento (usuários, transações, performance)',
   })
   @ApiResponse({
     status: 200,
