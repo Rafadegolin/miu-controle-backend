@@ -17,6 +17,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { parseDeviceInfo } from '../common/utils/device-info.util';
+import { auth } from './better-auth.config';
 
 @Injectable()
 export class AuthService {
@@ -57,7 +58,9 @@ export class AuthService {
             status: 'ACTIVE',
             amount: 0,
             currentPeriodStart: new Date(),
-            currentPeriodEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 100)), // Indefinite for free
+            currentPeriodEnd: new Date(
+              new Date().setFullYear(new Date().getFullYear() + 100),
+            ), // Indefinite for free
           },
         },
       },
@@ -115,7 +118,16 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-        throw new UnauthorizedException('Conta desativada ou banida. Entre em contato com o suporte.');
+      throw new UnauthorizedException(
+        'Conta desativada ou banida. Entre em contato com o suporte.',
+      );
+    }
+
+    // Usuário criado via login social não possui senha
+    if (!user.passwordHash) {
+      throw new UnauthorizedException(
+        'Sua conta usa login com o Google. Clique em "Entrar com Google" para acessar.',
+      );
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -162,10 +174,7 @@ export class AuthService {
       where: { token: refreshToken },
     });
 
-    if (
-      !tokenRecord ||
-      tokenRecord.revokedAt
-    ) {
+    if (!tokenRecord || tokenRecord.revokedAt) {
       throw new UnauthorizedException('Token inválido');
     }
 
@@ -178,7 +187,7 @@ export class AuthService {
     });
 
     if (!user) {
-         throw new UnauthorizedException('Usuário não encontrado');
+      throw new UnauthorizedException('Usuário não encontrado');
     }
 
     // Atualizar lastUsedAt do token atual
@@ -463,6 +472,110 @@ export class AuthService {
     return {
       message:
         'Se o email existir e não estiver verificado, enviaremos um novo link.',
+    };
+  }
+
+  /**
+   * Troca uma sessão do Better Auth (pós Google OAuth) pelos nossos tokens JWT.
+   *
+   * Fluxo:
+   *  1. Frontend redireciona usuário para /api/auth/signin/google (Better Auth)
+   *  2. Google autentica e redireciona para /api/auth/callback/google
+   *  3. Better Auth cria uma sessão e redireciona o frontend com o sessionToken
+   *  4. Frontend chama POST /auth/google/exchange com o sessionToken
+   *  5. Este método valida a sessão, provisionsa o usuário e retorna nossos JWTs
+   */
+  async exchangeGoogleSession(
+    sessionToken: string,
+    userAgent?: string,
+    ipAddress?: string,
+  ) {
+    // 1. Verificar a sessão do Better Auth
+    const sessionData = await auth.api.getSession({
+      headers: new Headers({
+        cookie: `better-auth.session_token=${sessionToken}`,
+      }),
+    });
+
+    if (!sessionData?.user?.email) {
+      throw new UnauthorizedException(
+        'Sessão Google inválida ou expirada. Tente fazer login novamente.',
+      );
+    }
+
+    const googleUser = sessionData.user;
+
+    // 2. Buscar ou provisionar o usuário no nosso banco
+    let user = await this.prisma.user.findUnique({
+      where: { email: googleUser.email },
+      include: { subscription: { select: { plan: true } } },
+    });
+
+    if (!user) {
+      // Primeiro acesso via Google: criar conta completa
+      user = await this.prisma.user.create({
+        data: {
+          email: googleUser.email,
+          fullName: googleUser.name || googleUser.email.split('@')[0],
+          avatarUrl: googleUser.image || null,
+          emailVerified: true, // Google já verificou o email
+          passwordHash: null, // Usuário social não possui senha
+          subscription: {
+            create: {
+              plan: 'FREE',
+              status: 'ACTIVE',
+              amount: 0,
+              currentPeriodStart: new Date(),
+              // Plano FREE indefinido
+              currentPeriodEnd: new Date(
+                new Date().setFullYear(new Date().getFullYear() + 100),
+              ),
+            },
+          },
+        },
+        include: { subscription: { select: { plan: true } } },
+      });
+    } else {
+      // Usuário já existe: atualizar foto se ainda não tiver
+      if (!user.avatarUrl && googleUser.image) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { avatarUrl: googleUser.image },
+        });
+        user = { ...user, avatarUrl: googleUser.image };
+      }
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException(
+        'Conta desativada ou banida. Entre em contato com o suporte.',
+      );
+    }
+
+    // 3. Atualizar lastLoginAt
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    // 4. Gerar nossos tokens JWT padrão (mesmo formato do login normal)
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      userAgent,
+      ipAddress,
+    );
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+        subscriptionTier: user.subscription?.plan,
+        hasCompletedOnboarding: (user as any).hasCompletedOnboarding ?? false,
+      },
+      ...tokens, // accessToken + refreshToken
     };
   }
 

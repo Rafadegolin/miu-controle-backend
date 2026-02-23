@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import {
@@ -32,6 +33,11 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { CurrentRefreshToken } from './decorators/current-refresh-token.decorator';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 
+// DTO simples para o exchange do Google
+class GoogleExchangeDto {
+  sessionToken: string;
+}
+
 @ApiTags('Autenticação')
 @Controller('auth')
 export class AuthController {
@@ -42,9 +48,9 @@ export class AuthController {
 
   @Post('register')
   @Throttle({ long: { limit: 3, ttl: 3600000 } }) // 3 req/hora
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Criar nova conta',
-    description: 'Limite: 3 tentativas por hora'
+    description: 'Limite: 3 tentativas por hora',
   })
   @ApiResponse({ status: 201, description: 'Conta criada com sucesso' })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
@@ -57,9 +63,9 @@ export class AuthController {
   @Post('login')
   @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 req/min
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Fazer login',
-    description: 'Limite: 5 tentativas por minuto'
+    description: 'Limite: 5 tentativas por minuto',
   })
   @ApiResponse({ status: 200, description: 'Login realizado com sucesso' })
   @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
@@ -67,6 +73,43 @@ export class AuthController {
     const userAgent = req.headers['user-agent'];
     const ipAddress = req.ip || req.socket.remoteAddress;
     return this.authService.login(loginDto, userAgent, ipAddress);
+  }
+
+  /**
+   * Troca uma sessão do Better Auth (Google OAuth) pelos tokens JWT do sistema.
+   *
+   * Fluxo do frontend:
+   *  1. Redirecionar usuário para: GET /api/auth/signin/google
+   *  2. Após callback do Google, o Better Auth redireciona para o frontend
+   *     com o parâmetro ?sessionToken=xxx na URL informada no config
+   *  3. Frontend chama este endpoint com o sessionToken recebido
+   *  4. Endpoint retorna { accessToken, refreshToken, user } — IGUAL ao login normal
+   */
+  @Post('google/exchange')
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Trocar sessão Google por tokens JWT',
+    description:
+      'Após o fluxo OAuth via Better Auth, troca o sessionToken pelos ' +
+      'accessToken e refreshToken do sistema. Retorno idêntico ao /auth/login normal.',
+  })
+  @ApiResponse({ status: 200, description: 'Tokens gerados com sucesso' })
+  @ApiResponse({
+    status: 401,
+    description: 'Sessão Google inválida ou expirada',
+  })
+  async googleExchange(@Body() body: GoogleExchangeDto, @Req() req: Request) {
+    if (!body?.sessionToken) {
+      throw new UnauthorizedException('sessionToken é obrigatório');
+    }
+    const userAgent = (req as any).headers?.['user-agent'];
+    const ipAddress = (req as any).ip || (req as any).socket?.remoteAddress;
+    return this.authService.exchangeGoogleSession(
+      body.sessionToken,
+      userAgent,
+      ipAddress,
+    );
   }
 
   @Post('refresh')
@@ -95,9 +138,9 @@ export class AuthController {
   @Post('forgot-password')
   @Throttle({ long: { limit: 3, ttl: 3600000 } }) // 3 req/hora
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Solicitar recuperação de senha',
-    description: 'Limite: 3 tentativas por hora'
+    description: 'Limite: 3 tentativas por hora',
   })
   @ApiResponse({ status: 200, description: 'Email enviado (se existir)' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
@@ -137,9 +180,9 @@ export class AuthController {
   @Post('resend-verification')
   @Throttle({ long: { limit: 3, ttl: 3600000 } }) // 3 req/hora
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Reenviar email de verificação',
-    description: 'Limite: 3 tentativas por hora'
+    description: 'Limite: 3 tentativas por hora',
   })
   @ApiResponse({ status: 200, description: 'Email reenviado (se existir)' })
   @ApiResponse({ status: 409, description: 'Email já verificado' })

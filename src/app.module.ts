@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -45,6 +45,7 @@ import { HealthScoreModule } from './health-score/health-score.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { BrandsModule } from './brands/brands.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
+import { BetterAuthMiddleware } from './auth/better-auth.middleware';
 
 @Module({
   imports: [
@@ -72,7 +73,10 @@ import { OnboardingModule } from './onboarding/onboarding.module';
           console.log('✅ Redis cache connected successfully');
           return { store };
         } catch (error) {
-          console.error('❌ Redis connection failed, cache disabled:', error.message);
+          console.error(
+            '❌ Redis connection failed, cache disabled:',
+            error.message,
+          );
           // Fallback to memory cache if Redis fails
           return {};
         }
@@ -81,7 +85,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 
     // Import CacheHelperModule for CacheService
     CacheHelperModule,
-    
+
     PrismaModule,
     AuthModule,
     AccountsModule,
@@ -112,18 +116,18 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     ThrottlerModule.forRoot([
       {
         name: 'short',
-        ttl: 1000,    // 1 segundo
-        limit: 10,    // 10 requisições por segundo
+        ttl: 1000, // 1 segundo
+        limit: 10, // 10 requisições por segundo
       },
       {
         name: 'medium',
-        ttl: 60000,   // 1 minuto
-        limit: 100,   // 100 requisições por minuto
+        ttl: 60000, // 1 minuto
+        limit: 100, // 100 requisições por minuto
       },
       {
         name: 'long',
-        ttl: 900000,  // 15 minutos
-        limit: 500,   // 500 requisições por 15 min
+        ttl: 900000, // 15 minutos
+        limit: 500, // 500 requisições por 15 min
       },
     ]),
     PlanningModule,
@@ -156,4 +160,11 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // O Better Auth intercepta todas as rotas /api/auth/* para gerenciar
+    // o fluxo OAuth do Google (signin, callback, get-session, sign-out).
+    // O path *path é necessário no NestJS v10+ para wildcard no forRoutes.
+    consumer.apply(BetterAuthMiddleware).forRoutes('/api/auth/*path');
+  }
+}

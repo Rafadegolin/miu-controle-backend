@@ -36,7 +36,7 @@ enum Role {
 model User {
   id               String           @id @default(uuid())
   email            String           @unique
-  passwordHash     String           @map("password_hash")
+  passwordHash     String?          @map("password_hash") // Nullable: usuários com login social não possuem senha
   fullName         String           @map("full_name")
   phone            String?
   avatarUrl        String?          @map("avatar_url")
@@ -100,8 +100,63 @@ model User {
   missions              UserMission[]
   feedbacks             Feedback[]
   releaseReads          UserReleaseRead[]
-  
+
+  // Better Auth — Login Social (Issue #78)
+  socialAccounts        SocialAccount[]
+  betterAuthSessions    BetterAuthSession[]
+
   @@map("users")
+}
+
+// ==================== BETTER AUTH — LOGIN SOCIAL (Issue #78) ====================
+
+// Contas OAuth vinculadas ao usuário (Google, etc.)
+model SocialAccount {
+  id                    String    @id
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  accessToken           String?   @map("access_token") @db.Text
+  refreshToken          String?   @map("refresh_token") @db.Text
+  idToken               String?   @map("id_token") @db.Text
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("social_accounts")
+}
+
+// Sessões internas do Better Auth (gerenciadas durante o fluxo OAuth)
+model BetterAuthSession {
+  id        String   @id
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("better_auth_sessions")
+}
+
+// Verificações temporárias usadas no fluxo OAuth (state, PKCE, etc.)
+model BetterAuthVerification {
+  id         String   @id
+  identifier String
+  value      String   @db.Text
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("better_auth_verifications")
 }
 
 // ... (existing models) ...
