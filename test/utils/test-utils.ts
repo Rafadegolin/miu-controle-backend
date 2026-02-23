@@ -5,13 +5,15 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 /**
  * Cria app NestJS configurado para testes E2E
  */
-export async function createTestApp(moduleImports: any[]): Promise<INestApplication> {
+export async function createTestApp(
+  moduleImports: any[],
+): Promise<INestApplication> {
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: moduleImports,
   }).compile();
 
   const app = moduleFixture.createNestApplication();
-  
+
   // Aplicar mesmas configurações do main.ts
   app.useGlobalPipes(
     new ValidationPipe({
@@ -31,6 +33,10 @@ export async function createTestApp(moduleImports: any[]): Promise<INestApplicat
 export async function cleanDatabase(prisma: PrismaService) {
   // Ordem importa devido a foreign keys
   await prisma.notification.deleteMany();
+  // Projects (Issue #79) — deve vir antes de transactions para evitar FK
+  await prisma.quote.deleteMany();
+  await prisma.projectItem.deleteMany();
+  await prisma.project.deleteMany();
   await prisma.transaction.deleteMany();
   await prisma.recurringTransaction.deleteMany();
   await prisma.budget.deleteMany();

@@ -46,6 +46,7 @@ import { GamificationModule } from './gamification/gamification.module';
 import { BrandsModule } from './brands/brands.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { BetterAuthMiddleware } from './auth/better-auth.middleware';
+import { ProjectsModule } from './projects/projects.module';
 
 @Module({
   imports: [
@@ -141,6 +142,7 @@ import { BetterAuthMiddleware } from './auth/better-auth.middleware';
     GamificationModule,
     BrandsModule,
     OnboardingModule,
+    ProjectsModule, // Planejamento de Despesas com Orçamentos (Issue #79)
   ],
   providers: [
     // 🚦 ThrottlerGuard global
