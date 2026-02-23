@@ -44,6 +44,7 @@
     "@prisma/client": "^5.22.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
+    "better-auth": "^1.4.18",
     "cache-manager": "^7.2.7",
     "cache-manager-redis-yet": "^5.1.5",
     "class-transformer": "^0.5.1",
