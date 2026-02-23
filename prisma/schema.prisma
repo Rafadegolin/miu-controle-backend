@@ -105,6 +105,9 @@ model User {
   socialAccounts        SocialAccount[]
   betterAuthSessions    BetterAuthSession[]
 
+  // Projects — Planejamento de Despesas (Issue #79)
+  projects              Project[]
+
   @@map("users")
 }
 
@@ -1172,4 +1175,94 @@ enum FeedbackStatus {
   IN_REVIEW
   RESOLVED
   REJECTED
+}
+
+// ==================== PROJECTS — Planejamento de Despesas com Orçamentos (Issue #79) ====================
+
+enum ProjectStatus {
+  PLANNING    // Em planejamento, nenhum item comprado ainda
+  IN_PROGRESS // Ao menos 1 item comprado
+  COMPLETED   // Todos os itens não-cancelados foram comprados
+  CANCELLED
+}
+
+enum ProjectItemStatus {
+  PENDING    // Sem cotações ainda
+  QUOTED     // Tem cotações, aguardando compra
+  PURCHASED  // Convertido em transação real
+  CANCELLED
+}
+
+enum QuoteStatus {
+  PENDING    // Aguardando análise
+  SELECTED   // Escolhido para comprar (apenas 1 por item)
+  REJECTED   // Descartado
+  CONVERTED  // Transação foi gerada a partir desta cotação
+}
+
+/// Projeto financeiro: agrupa itens de uma compra complexa (ex: "Arrumar Carro")
+model Project {
+  id          String        @id @default(uuid())
+  userId      String        @map("user_id")
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  status      ProjectStatus @default(PLANNING)
+  /// Orçamento máximo estimado pelo usuário (opcional)
+  totalBudget Decimal?      @map("total_budget") @db.Decimal(15, 2)
+  deadline    DateTime?
+  color       String        @default("#6366F1")
+  icon        String?
+
+  items       ProjectItem[]
+
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("projects")
+}
+
+/// Item de um projeto (ex: "Bateria nova", "Troca de óleo")
+model ProjectItem {
+  id            String            @id @default(uuid())
+  projectId     String            @map("project_id")
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  quantity      Int               @default(1)
+  status        ProjectItemStatus @default(PENDING)
+  /// Prioridade: 1=urgente … 5=baixa prioridade
+  priority      Int               @default(3)
+  /// ID da Transaction criada ao converter orçamento (sem FK para evitar dependência circular)
+  transactionId String?           @unique @map("transaction_id")
+
+  quotes        Quote[]
+
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  @@index([projectId, status])
+  @@map("project_items")
+}
+
+/// Cotação de fornecedor para um ProjectItem (ex: AutoPeças - R$ 450)
+model Quote {
+  id              String      @id @default(uuid())
+  itemId          String      @map("item_id")
+  item            ProjectItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  supplierName    String      @map("supplier_name")
+  /// Preço principal do fornecedor
+  price           Decimal     @db.Decimal(15, 2)
+  /// Custos adicionais: frete, instalação, etc. (padrão: 0)
+  additionalCosts Decimal     @default(0) @map("additional_costs") @db.Decimal(15, 2)
+  notes           String?
+  status          QuoteStatus @default(PENDING)
+
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@index([itemId, status])
+  @@map("quotes")
 }
