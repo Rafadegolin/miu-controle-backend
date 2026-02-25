@@ -26,24 +26,13 @@ export class DashboardService {
    */
   async getHomeDashboard(userId: string): Promise<DashboardResponseDto> {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-    );
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      0,
-      23,
-      59,
-      59,
-    );
+    // Usar UTC para evitar que o fuso horário local (Brasil UTC-3) desloque os limites do mês
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth(); // 0-indexed
+    const startOfMonth = new Date(Date.UTC(year, month, 1));
+    const endOfMonth = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
+    const startOfLastMonth = new Date(Date.UTC(year, month - 1, 1));
+    const endOfLastMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
     // Buscar todos os dados em paralelo para otimizar performance
     const [
@@ -599,10 +588,10 @@ export class DashboardService {
       },
     });
 
-    // Agrupar gastos por dia
+    // Agrupar gastos por dia (usando chave UTC para consistência)
     const dailyExpenses = new Map<string, number>();
     transactions.forEach((t) => {
-      const dateKey = t.date.toISOString().split('T')[0];
+      const dateKey = t.date.toISOString().split('T')[0]; // já é UTC ISO
       const current = dailyExpenses.get(dateKey) || 0;
       dailyExpenses.set(dateKey, current + Number(t.amount));
     });
@@ -610,11 +599,10 @@ export class DashboardService {
     // Gerar dados para cada dia do mês
     const data = [];
     let accumulated = 0;
+    // Usar UTC para calcular dias do mês, evitando deslocamento de fuso horário
     const daysInMonth = new Date(
-      startDate.getFullYear(),
-      startDate.getMonth() + 1,
-      0,
-    ).getDate();
+      Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 0),
+    ).getUTCDate();
     const totalExpenses = transactions.reduce(
       (sum, t) => sum + Number(t.amount),
       0,
@@ -622,7 +610,10 @@ export class DashboardService {
     const avgDaily = totalExpenses / daysInMonth;
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(startDate.getFullYear(), startDate.getMonth(), day);
+      // Usar Date.UTC para gerar a chave correta sem deslocamento de fuso
+      const date = new Date(
+        Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), day),
+      );
       const dateKey = date.toISOString().split('T')[0];
       const daily = dailyExpenses.get(dateKey) || 0;
       accumulated += daily;
@@ -654,14 +645,20 @@ export class DashboardService {
 
     // Buscar saldo dos últimos 6 meses
     for (let i = 5; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      // Usar UTC para evitar deslocamento de mês em servidores com fuso diferente de UTC
+      const monthDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1),
+      );
       const endOfMonth = new Date(
-        monthDate.getFullYear(),
-        monthDate.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
+        Date.UTC(
+          monthDate.getUTCFullYear(),
+          monthDate.getUTCMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999,
+        ),
       );
 
       // Calcular saldo total no final do mês
@@ -701,7 +698,7 @@ export class DashboardService {
         monthBalance += accountBalance;
       }
 
-      const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+      const monthKey = `${monthDate.getUTCFullYear()}-${String(monthDate.getUTCMonth() + 1).padStart(2, '0')}`;
 
       data.push({
         month: monthKey,

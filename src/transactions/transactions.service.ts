@@ -69,12 +69,14 @@ export class TransactionsService {
     // 🧠 BRAND INTELLIGENCE: Detect brand from description
     let brandId: string | null = null;
     try {
-        const detectedBrand = await this.brandsService.detectBrand(createTransactionDto.description);
-        if (detectedBrand) {
-            brandId = detectedBrand.id;
-        }
-    } catch(e) {
-        console.warn('Brand detection failed:', e);
+      const detectedBrand = await this.brandsService.detectBrand(
+        createTransactionDto.description,
+      );
+      if (detectedBrand) {
+        brandId = detectedBrand.id;
+      }
+    } catch (e) {
+      console.warn('Brand detection failed:', e);
     }
 
     // 🤖 AI CATEGORIZATION
@@ -85,33 +87,34 @@ export class TransactionsService {
     if (!createTransactionDto.categoryId) {
       // ... ai logic ...
       try {
-        const aiResult = await this.aiCategorizationService.categorizeTransaction(
-          userId,
-          {
+        const aiResult =
+          await this.aiCategorizationService.categorizeTransaction(userId, {
             description: createTransactionDto.description,
             amount: createTransactionDto.amount,
             merchant: createTransactionDto.merchant,
             date: createTransactionDto.date
               ? new Date(createTransactionDto.date)
               : new Date(),
-          },
-        );
+          });
 
         // Aplicar categoria se confiança >= 0.7
         if (aiResult.categoryId && aiResult.confidence >= 0.7) {
-            aiCategoryId = aiResult.categoryId;
-            aiConfidence = aiResult.confidence;
-            aiCategorized = true;
+          aiCategoryId = aiResult.categoryId;
+          aiConfidence = aiResult.confidence;
+          aiCategorized = true;
 
-            const suggestedCategory = await this.prisma.category.findUnique({
-                where: { id: aiResult.categoryId }
-            });
+          const suggestedCategory = await this.prisma.category.findUnique({
+            where: { id: aiResult.categoryId },
+          });
 
-            if (suggestedCategory && suggestedCategory.type === createTransactionDto.type) {
-                createTransactionDto.categoryId = aiResult.categoryId;
-            } else {
-                aiCategorized = false;
-            }
+          if (
+            suggestedCategory &&
+            suggestedCategory.type === createTransactionDto.type
+          ) {
+            createTransactionDto.categoryId = aiResult.categoryId;
+          } else {
+            aiCategorized = false;
+          }
         }
       } catch (error) {
         console.warn('AI categorization failed:', error.message);
@@ -379,9 +382,13 @@ export class TransactionsService {
   // ==================== ANALYTICS ====================
 
   async getMonthlyStats(userId: string, month: string) {
-    const startDate = new Date(month);
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 1);
+    // Usar Date.UTC para evitar bugs de timezone com strings de data pura ("YYYY-MM-DD")
+    // new Date("2026-02-01") é UTC, mas setMonth() opera no fuso local → resultado errado em UTC-3
+    const parts = month.split('T')[0].split('-'); // aceita "2026-02-01" ou "2026-02-01T..."
+    const year = parseInt(parts[0], 10);
+    const monthIndex = parseInt(parts[1], 10) - 1; // 0-indexed
+    const startDate = new Date(Date.UTC(year, monthIndex, 1));
+    const endDate = new Date(Date.UTC(year, monthIndex + 1, 1));
 
     const transactions = await this.prisma.transaction.findMany({
       where: {
@@ -588,18 +595,22 @@ export class TransactionsService {
     }
 
     const previousBalance = Number(account.currentBalance);
-    
+
     const updatedAccount = await this.prisma.account.update({
       where: { id: accountId },
       data: { currentBalance: newBalance },
     });
 
     // Emitir evento de saldo atualizado
-    this.websocketService.emitToUser(account.userId, WS_EVENTS.BALANCE_UPDATED, {
-      accountId,
-      previousBalance,
-      newBalance: Number(updatedAccount.currentBalance),
-      difference: Number(updatedAccount.currentBalance) - previousBalance,
-    });
+    this.websocketService.emitToUser(
+      account.userId,
+      WS_EVENTS.BALANCE_UPDATED,
+      {
+        accountId,
+        previousBalance,
+        newBalance: Number(updatedAccount.currentBalance),
+        difference: Number(updatedAccount.currentBalance) - previousBalance,
+      },
+    );
   }
 }

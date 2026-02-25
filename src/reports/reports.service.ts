@@ -63,9 +63,10 @@ export class ReportsService {
     ).length;
 
     // Média diária
+    // Usar UTC para evitar deslocamento de fuso no início do ano
     const startDate = filters.startDate
       ? new Date(filters.startDate)
-      : new Date(new Date().getFullYear(), 0, 1);
+      : new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
     const endDate = filters.endDate ? new Date(filters.endDate) : new Date();
     const days =
       Math.ceil(
@@ -228,8 +229,9 @@ export class ReportsService {
     const monthMap = new Map<string, any>();
 
     transactions.forEach((t) => {
-      const date = new Date(t.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      // Usar UTC para evitar que transações em ~00:00 UTC sejam agrupadas no mês errado (fuso local)
+      const date = t.date;
+      const monthKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 
       if (!monthMap.has(monthKey)) {
         monthMap.set(monthKey, {
