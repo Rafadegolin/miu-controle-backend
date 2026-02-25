@@ -1,10 +1,10 @@
 ###################
 # BUILD
 ###################
-FROM node:20.11-alpine3.18 AS builder
+FROM node:22-alpine AS builder
 
-# Instalar dependências necessárias (OpenSSL 1.1 para Prisma)
-RUN apk add --no-cache openssl1.1-compat
+# Instalar OpenSSL 3.x (necessário para Prisma com Alpine)
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
@@ -22,16 +22,16 @@ RUN npm run build
 ###################
 # PRODUCTION
 ###################
-FROM node:20.11-alpine3.18 AS production
+FROM node:22-alpine AS production
 
-# Instalar netcat para healthcheck e OpenSSL 1.1 para Prisma
-RUN apk add --no-cache netcat-openbsd openssl1.1-compat
+# Instalar netcat para healthcheck e OpenSSL 3.x para Prisma
+RUN apk add --no-cache netcat-openbsd openssl
 
 WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 COPY prisma ./prisma
 

@@ -4,7 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
-import { redisStore } from 'cache-manager-redis-yet';
+import KeyvRedis from '@keyv/redis';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { AccountsModule } from './accounts/accounts.module';
@@ -60,27 +60,25 @@ import { ProjectsModule } from './projects/projects.module';
       isGlobal: true,
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
-        try {
-          const store = await redisStore({
-            socket: {
-              host: configService.get('REDIS_HOST', 'localhost'),
-              port: configService.get<number>('REDIS_PORT', 6379),
-            },
-            password: configService.get('REDIS_PASSWORD'),
-            ttl: configService.get<number>('REDIS_TTL', 300) * 1000, // Convert to ms
-          });
+      useFactory: (configService: ConfigService) => {
+        const host = configService.get('REDIS_HOST', 'localhost');
+        const port = configService.get<number>('REDIS_PORT', 6379);
+        const password = configService.get('REDIS_PASSWORD');
+        const ttl = configService.get<number>('REDIS_TTL', 300) * 1000;
 
-          console.log('✅ Redis cache connected successfully');
-          return { store };
-        } catch (error) {
-          console.error(
-            '❌ Redis connection failed, cache disabled:',
-            error.message,
-          );
-          // Fallback to memory cache if Redis fails
-          return {};
-        }
+        const redisUrl = password
+          ? `redis://:${password}@${host}:${port}`
+          : `redis://${host}:${port}`;
+
+        const store = new KeyvRedis(redisUrl);
+
+        // Loga erros de conexão sem derrubar a aplicação
+        store.on('error', (err: Error) =>
+          console.error('❌ Redis cache error:', err.message),
+        );
+
+        console.log('✅ Redis cache initialized');
+        return { stores: [store], ttl };
       },
     }),
 

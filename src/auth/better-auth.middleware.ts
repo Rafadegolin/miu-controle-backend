@@ -14,17 +14,16 @@
 
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { toNodeHandler } from 'better-auth/node';
-import { auth } from './better-auth.config';
-
-const betterAuthHandler = toNodeHandler(auth);
+import { getAuth } from './better-auth.config';
 
 @Injectable()
 export class BetterAuthMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
-    // toNodeHandler retorna (req, res) — sem next.
-    // Este middleware é aplicado SOMENTE em /api/auth/* onde o Better Auth
-    // é o único responsável (signin, callback, get-session, sign-out).
-    betterAuthHandler(req as any, res as any);
+  async use(req: Request, res: Response, _next: NextFunction) {
+    const authInstance = await getAuth();
+    const { toNodeHandler } = await (
+      new Function('s', 'return import(s)') as (s: string) => Promise<any>
+    )('better-auth/node');
+    const handler = toNodeHandler(authInstance);
+    handler(req as any, res as any);
   }
 }

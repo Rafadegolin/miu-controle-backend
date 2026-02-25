@@ -17,7 +17,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { parseDeviceInfo } from '../common/utils/device-info.util';
-import { auth } from './better-auth.config';
+import { auth, getAuth } from './better-auth.config';
 
 @Injectable()
 export class AuthService {
@@ -491,7 +491,8 @@ export class AuthService {
     ipAddress?: string,
   ) {
     // 1. Verificar a sessão do Better Auth
-    const sessionData = await auth.api.getSession({
+    const authInstance = await getAuth();
+    const sessionData = await authInstance.api.getSession({
       headers: new Headers({
         cookie: `better-auth.session_token=${sessionToken}`,
       }),
