@@ -397,6 +397,11 @@ model Transaction {
   aiCategorized Boolean? @default(false) @map("ai_categorized")
   aiConfidence  Decimal? @map("ai_confidence") @db.Decimal(3, 2)
 
+  // OCR Receipt Fields
+  receiptImageUrl String? @map("receipt_image_url")                  // URL no MinIO
+  receiptRawText  String? @map("receipt_raw_text") @db.Text          // texto bruto extraído
+  receiptItems    Json?   @map("receipt_items")                      // array de itens do cupom
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -429,6 +434,7 @@ enum TransactionSource {
   NOTIFICATION
   OPEN_BANKING
   IMPORTED
+  OCR
 }
 
 enum TransactionType {

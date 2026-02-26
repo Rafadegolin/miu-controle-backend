@@ -8,6 +8,7 @@ import { AiUsageService } from './services/ai-usage.service';
 import { AiKeyManagerService } from './services/ai-key-manager.service';
 import { GeminiService } from './services/gemini.service';
 import { PredictiveAnalyticsService } from './services/predictive-analytics.service';
+import { ReceiptOcrService } from './services/receipt-ocr.service';
 import { AnomalyDetectionJob } from './jobs/anomaly-detection.job';
 
 import { AiConfigController } from './controllers/ai-config.controller';
@@ -19,27 +20,25 @@ import { AnalyticsController } from './controllers/analytics.controller';
  */
 @Module({
   imports: [CommonModule, AuditModule, NotificationsModule],
-  controllers: [
-    AiConfigController, 
-    AiUsageController,
-    AnalyticsController,
-  ],
+  controllers: [AiConfigController, AiUsageController, AnalyticsController],
   providers: [
-    OpenAiService, 
-    AiCategorizationService, 
+    OpenAiService,
+    AiCategorizationService,
     AiUsageService,
     AiKeyManagerService,
     GeminiService,
     PredictiveAnalyticsService,
     AnomalyDetectionJob,
+    ReceiptOcrService,
   ],
   exports: [
-    AiCategorizationService, 
+    AiCategorizationService,
     AiUsageService,
     AiKeyManagerService,
     GeminiService,
     PredictiveAnalyticsService,
     OpenAiService,
+    ReceiptOcrService,
   ],
 })
 export class AiModule {}
