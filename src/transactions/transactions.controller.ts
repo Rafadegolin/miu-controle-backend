@@ -8,21 +8,30 @@ import {
   Delete,
   UseGuards,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { FilterTransactionDto } from './dto/filter-transaction.dto';
+import { ReceiptAnalysisResponseDto } from './dto/receipt-analysis-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CorrectCategoryDto } from '../ai/dto/correct-category.dto';
+import 'multer';
 
 @ApiTags('Transações')
 @Controller('transactions')
@@ -33,9 +42,9 @@ export class TransactionsController {
 
   @Post()
   @Throttle({ medium: { limit: 60, ttl: 60000 } }) // 60 req/min
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Criar nova transação',
-    description: 'Limite: 60 transações por minuto'
+    description: 'Limite: 60 transações por minuto',
   })
   create(
     @CurrentUser() user,
@@ -114,5 +123,40 @@ export class TransactionsController {
       user.id,
       correctCategoryDto.correctedCategoryId,
     );
+  }
+
+  /**
+   * 📸 OCR: Analisa comprovante e extrai dados da transação
+   */
+  @Post('from-receipt')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ medium: { limit: 10, ttl: 60000 } }) // 10 req/min (OCR é caro)
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Analisar comprovante via OCR',
+    description:
+      'Envia uma imagem de comprovante/cupom fiscal e extrai automaticamente os dados para criação de transação. ' +
+      'Retorna um preview para o usuário confirmar — NÃO salva a transação. ' +
+      'Formatos aceitos: JPG, PNG, WEBP, HEIC, PDF. Limite: 10MB.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['image'],
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Imagem do comprovante (JPG, PNG, WEBP, HEIC) ou PDF',
+        },
+      },
+    },
+  })
+  analyzeReceipt(
+    @CurrentUser() user,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<ReceiptAnalysisResponseDto> {
+    return this.transactionsService.analyzeReceipt(file, user.id);
   }
 }

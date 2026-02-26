@@ -18,8 +18,11 @@ import { CacheService } from '../common/services/cache.service';
 import { WebsocketService } from '../websocket/websocket.service';
 import { WS_EVENTS } from '../websocket/events/websocket.events';
 import { AiCategorizationService } from '../ai/services/ai-categorization.service';
-
+import { ReceiptOcrService } from '../ai/services/receipt-ocr.service';
+import { UploadService } from '../upload/upload.service';
 import { BrandsService } from '../brands/brands.service';
+import { ReceiptAnalysisResponseDto } from './dto/receipt-analysis-response.dto';
+import 'multer';
 
 @Injectable()
 export class TransactionsService {
@@ -29,6 +32,8 @@ export class TransactionsService {
     private websocketService: WebsocketService,
     private aiCategorizationService: AiCategorizationService,
     private brandsService: BrandsService,
+    private receiptOcrService: ReceiptOcrService,
+    private uploadService: UploadService,
   ) {}
 
   async create(userId: string, createTransactionDto: CreateTransactionDto) {
@@ -116,8 +121,8 @@ export class TransactionsService {
             aiCategorized = false;
           }
         }
-      } catch (error) {
-        console.warn('AI categorization failed:', error.message);
+      } catch (error: any) {
+        console.warn('AI categorization failed:', error?.message);
       }
     }
 
@@ -612,5 +617,50 @@ export class TransactionsService {
         difference: Number(updatedAccount.currentBalance) - previousBalance,
       },
     );
+  }
+
+  /**
+   * Analyze a receipt image using OCR + Gemini Vision.
+   * Returns a preview for the user to confirm — does NOT save the transaction.
+   */
+  async analyzeReceipt(
+    file: Express.Multer.File,
+    userId: string,
+  ): Promise<ReceiptAnalysisResponseDto> {
+    const startTime = Date.now();
+
+    // Validate file before anything else
+    this.uploadService.validateReceiptFile(file);
+
+    // Upload receipt to MinIO for storage (best-effort — don't fail OCR if upload fails)
+    let receiptImageUrl: string | null = null;
+    try {
+      receiptImageUrl = await this.uploadService.uploadReceiptFile(
+        file,
+        userId,
+      );
+    } catch (uploadErr) {
+      // Log but don't block OCR
+      receiptImageUrl = null;
+      void uploadErr;
+    }
+
+    // Run Gemini Vision OCR
+    const preview = await this.receiptOcrService.analyze(
+      file.buffer,
+      file.mimetype,
+      userId,
+    );
+
+    // Attach receiptImageUrl to preview if available
+    (preview as any).receiptImageUrl = receiptImageUrl;
+
+    const processingMs = Date.now() - startTime;
+
+    return {
+      preview,
+      aiUsed: 'gemini-2.5-flash',
+      processingMs,
+    };
   }
 }

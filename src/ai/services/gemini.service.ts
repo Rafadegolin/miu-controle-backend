@@ -96,7 +96,7 @@ export class GeminiService {
           content: text,
           usage,
         };
-      } catch (error) {
+      } catch (error: any) {
         const errorMessage = error?.message || '';
         const isRateLimit =
           errorMessage.includes('429') ||
@@ -192,6 +192,97 @@ export class GeminiService {
     );
   }
   /**
+   * Analyze a receipt image and extract structured financial data using Gemini Vision.
+   * @param imageBuffer    - Raw buffer of the image/PDF file
+   * @param mimeType       - MIME type (image/jpeg, image/png, image/webp, application/pdf, image/heic)
+   * @param userCategories - List of user categories for AI context
+   * @param apiKey         - Gemini API key
+   */
+  async analyzeReceiptImage(
+    imageBuffer: Buffer,
+    mimeType: string,
+    userCategories: { id: string; name: string }[],
+    apiKey: string,
+  ): Promise<{
+    description: string | null;
+    amount: number | null;
+    type: 'EXPENSE' | 'INCOME';
+    date: string | null;
+    merchant: string | null;
+    categoryId: string | null;
+    categoryName: string | null;
+    confidence: number;
+    items: {
+      name: string;
+      quantity: number;
+      unitPrice: number;
+      total: number;
+    }[];
+    rawText: string | null;
+  }> {
+    const categoriesList =
+      userCategories.length > 0
+        ? userCategories.map((c) => `- ${c.name} (id: ${c.id})`).join('\n')
+        : '(nenhuma categoria cadastrada)';
+
+    const prompt = `Você é um assistente especializado em finanças pessoais.
+Analise a imagem deste comprovante/cupom fiscal e extraia as informações financeiras.
+
+Categorias disponíveis do usuário:
+${categoriesList}
+
+Retorne SOMENTE um JSON válido (sem markdown, sem blocos de código) com esta estrutura exata:
+{
+  "description": "nome do estabelecimento ou descrição curta",
+  "amount": 0.00,
+  "type": "EXPENSE",
+  "date": "YYYY-MM-DD",
+  "merchant": "razão social completa se disponível ou null",
+  "categoryId": "id da categoria mais adequada ou null",
+  "categoryName": "nome da categoria escolhida ou null",
+  "confidence": 0.0,
+  "items": [
+    { "name": "nome do item", "quantity": 1, "unitPrice": 0.00, "total": 0.00 }
+  ],
+  "rawText": "todo o texto extraído da imagem"
+}
+
+Regras:
+- Para "type", use "INCOME" apenas se for comprovante de recebimento/depósito/transferência recebida. Caso contrário, use "EXPENSE".
+- Para "date", use o formato YYYY-MM-DD. Se não encontrar data, use null.
+- Para "confidence", atribua um valor entre 0.0 e 1.0 indicando sua confiança na extração.
+- Se não conseguir identificar um campo, use null para strings e arrays vazios para "items".
+- Para "amount", extraia o valor TOTAL do documento. Se não encontrar, use null.`;
+
+    const model = this.initializeClient(apiKey, 'gemini-2.5-flash');
+
+    const result = await model.generateContent([
+      { text: prompt },
+      {
+        inlineData: {
+          mimeType,
+          data: imageBuffer.toString('base64'),
+        },
+      },
+    ]);
+
+    const responseText = result.response.text().trim();
+
+    // Strip possible markdown code fences
+    const clean = responseText
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/, '')
+      .trim();
+
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Gemini não retornou JSON válido no OCR do comprovante');
+    }
+
+    return JSON.parse(jsonMatch[0]);
+  }
+
+  /**
    * Refine text using Gemini
    */
   async enhanceText(text: string, apiKey: string): Promise<string> {
@@ -207,8 +298,8 @@ export class GeminiService {
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text().trim();
-    } catch (error) {
-      this.logger.warn(`Failed to enhance text with Gemini: ${error.message}`);
+    } catch (error: any) {
+      this.logger.warn(`Failed to enhance text with Gemini: ${error?.message}`);
       return text; // Fallback to original text
     }
   }
