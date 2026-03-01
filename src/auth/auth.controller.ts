@@ -33,8 +33,12 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { CurrentRefreshToken } from './decorators/current-refresh-token.decorator';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 
-// DTO simples para o exchange do Google
+// DTOs simples para o exchange dos provedores sociais
 class GoogleExchangeDto {
+  sessionToken: string;
+}
+
+class AppleExchangeDto {
   sessionToken: string;
 }
 
@@ -106,6 +110,44 @@ export class AuthController {
     const userAgent = (req as any).headers?.['user-agent'];
     const ipAddress = (req as any).ip || (req as any).socket?.remoteAddress;
     return this.authService.exchangeGoogleSession(
+      body.sessionToken,
+      userAgent,
+      ipAddress,
+    );
+  }
+
+  /**
+   * Troca uma sessão do Better Auth (Apple Sign-In) pelos tokens JWT do sistema.
+   *
+   * Fluxo do frontend mobile:
+   *  1. App usa expo-apple-authentication para iniciar o fluxo
+   *  2. Redirecionar para: GET /api/auth/signin/apple
+   *  3. Após callback da Apple, o Better Auth redireciona com ?sessionToken=xxx
+   *  4. App chama este endpoint com o sessionToken recebido
+   *  5. Endpoint retorna { accessToken, refreshToken, user } — IGUAL ao login normal
+   */
+  @Post('apple/exchange')
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Trocar sessão Apple Sign-In por tokens JWT',
+    description:
+      'Após o fluxo OAuth via Better Auth, troca o sessionToken pelos ' +
+      'accessToken e refreshToken do sistema. Retorno idêntico ao /auth/login normal. ' +
+      'Obrigatório para publicação na App Store (Apple exige login social Apple).',
+  })
+  @ApiResponse({ status: 200, description: 'Tokens gerados com sucesso' })
+  @ApiResponse({
+    status: 401,
+    description: 'Sessão Apple inválida ou expirada',
+  })
+  async appleExchange(@Body() body: AppleExchangeDto, @Req() req: Request) {
+    if (!body?.sessionToken) {
+      throw new UnauthorizedException('sessionToken é obrigatório');
+    }
+    const userAgent = (req as any).headers?.['user-agent'];
+    const ipAddress = (req as any).ip || (req as any).socket?.remoteAddress;
+    return this.authService.exchangeAppleSession(
       body.sessionToken,
       userAgent,
       ipAddress,

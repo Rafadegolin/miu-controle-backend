@@ -66,12 +66,23 @@ export function getAuth(): Promise<any> {
         modelName: 'betterAuthVerification',
       },
 
-      // ─── Provider Google ──────────────────────────────────────────────────────
+      // ─── Providers Sociais ──────────────────────────────────────────────────
       socialProviders: {
         google: {
           clientId: process.env.GOOGLE_CLIENT_ID!,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         },
+        // Apple Sign-In — obrigatório para publicação na App Store (#93)
+        // O clientSecret não é uma string fixa: é um JWT assinado com a chave P8
+        // que expira em 6 meses. Configure via variável de ambiente.
+        ...(process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET
+          ? {
+              apple: {
+                clientId: process.env.APPLE_CLIENT_ID,
+                clientSecret: process.env.APPLE_CLIENT_SECRET,
+              },
+            }
+          : {}),
       },
 
       // ─── Origens confiáveis (CORS do Better Auth) ────────────────────────────
@@ -80,6 +91,7 @@ export function getAuth(): Promise<any> {
         'http://localhost:3001',
         'https://miucontrole.com.br',
         'https://www.miucontrole.com.br',
+        'miucontrole://', // Deep link do app mobile (Apple/Android)
       ],
     });
 

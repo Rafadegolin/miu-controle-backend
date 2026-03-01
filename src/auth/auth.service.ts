@@ -581,6 +581,108 @@ export class AuthService {
   }
 
   /**
+   * Troca uma sessão do Better Auth (Apple Sign-In) pelos tokens JWT do sistema.
+   *
+   * Fluxo nativo mobile (Expo/React Native):
+   *  1. App usa expo-apple-authentication para obter o identityToken
+   *  2. Frontend chama GET /api/auth/signin/apple (Better Auth inicia o fluxo)
+   *  3. Após callback da Apple, Better Auth cria a sessão
+   *  4. Frontend chama POST /auth/apple/exchange com o sessionToken
+   *  5. Retorna { accessToken, refreshToken, user } — idêntico ao login normal
+   *
+   * Atenção: a Apple só envia o nome do usuário no PRIMEIRO login.
+   * Em logins subsequentes, apenas email e sub estarão disponíveis.
+   */
+  async exchangeAppleSession(
+    sessionToken: string,
+    userAgent?: string,
+    ipAddress?: string,
+  ) {
+    // 1. Verificar a sessão do Better Auth
+    const authInstance = await getAuth();
+    const sessionData = await authInstance.api.getSession({
+      headers: new Headers({
+        cookie: `better-auth.session_token=${sessionToken}`,
+      }),
+    });
+
+    if (!sessionData?.user?.email) {
+      throw new UnauthorizedException(
+        'Sessão Apple inválida ou expirada. Tente fazer login novamente.',
+      );
+    }
+
+    const appleUser = sessionData.user;
+
+    // 2. Buscar ou provisionar o usuário no nosso banco
+    let user = await this.prisma.user.findUnique({
+      where: { email: appleUser.email },
+      include: { subscription: { select: { plan: true } } },
+    });
+
+    if (!user) {
+      // Primeiro acesso via Apple: criar conta completa
+      // Nota: a Apple só envia o nome no primeiro acesso.
+      //       Em logins seguintes, appleUser.name pode ser nulo.
+      const fullName = appleUser.name || appleUser.email.split('@')[0];
+
+      user = await this.prisma.user.create({
+        data: {
+          email: appleUser.email,
+          fullName,
+          avatarUrl: appleUser.image || null,
+          emailVerified: true, // Apple já verificou o email
+          passwordHash: null, // Usuário social não possui senha
+          subscription: {
+            create: {
+              plan: 'FREE',
+              status: 'ACTIVE',
+              amount: 0,
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: new Date(
+                new Date().setFullYear(new Date().getFullYear() + 100),
+              ),
+            },
+          },
+        },
+        include: { subscription: { select: { plan: true } } },
+      });
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException(
+        'Conta desativada ou banida. Entre em contato com o suporte.',
+      );
+    }
+
+    // 3. Atualizar lastLoginAt
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    // 4. Gerar tokens JWT padrão
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      userAgent,
+      ipAddress,
+    );
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+        subscriptionTier: user.subscription?.plan,
+        hasCompletedOnboarding: (user as any).hasCompletedOnboarding ?? false,
+      },
+      ...tokens,
+    };
+  }
+
+  /**
    * Gera tokens JWT com informações de sessão
    */
   private async generateTokens(
