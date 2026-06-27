@@ -44,6 +44,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { BetterAuthMiddleware } from './auth/better-auth.middleware';
 import { ProjectsModule } from './projects/projects.module';
 import { ImportModule } from './import/import.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -135,6 +136,7 @@ import { ImportModule } from './import/import.module';
     OnboardingModule,
     ProjectsModule, // Planejamento de Despesas com Orçamentos (Issue #79)
     ImportModule, // Importação de extratos OFX/CSV
+    WhatsappModule, // Lançamento via WhatsApp (EvolutionAPI)
   ],
   providers: [
     // 🚦 ThrottlerGuard global
