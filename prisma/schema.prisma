@@ -435,6 +435,7 @@ enum TransactionSource {
   OPEN_BANKING
   IMPORTED
   OCR
+  RECURRING
 }
 
 enum TransactionType {

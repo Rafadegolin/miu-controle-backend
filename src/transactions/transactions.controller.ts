@@ -23,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
+import { TransactionSource } from '@prisma/client';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
@@ -158,5 +159,24 @@ export class TransactionsController {
     @UploadedFile() file: Express.Multer.File,
   ): Promise<ReceiptAnalysisResponseDto> {
     return this.transactionsService.analyzeReceipt(file, user.id);
+  }
+
+  /**
+   * 📸 OCR: Confirma o preview e persiste a transação (source=OCR)
+   */
+  @Post('from-receipt/confirm')
+  @Throttle({ medium: { limit: 60, ttl: 60000 } }) // 60 req/min
+  @ApiOperation({
+    summary: 'Confirmar e salvar transação a partir do OCR',
+    description:
+      'Persiste o preview do comprovante (possivelmente editado pelo usuário) como ' +
+      'transação. O source é forçado para OCR e os metadados do recibo ' +
+      '(imagem, texto bruto, itens) são armazenados.',
+  })
+  confirmReceipt(@CurrentUser() user, @Body() dto: CreateTransactionDto) {
+    return this.transactionsService.create(user.id, {
+      ...dto,
+      source: TransactionSource.OCR,
+    });
   }
 }
