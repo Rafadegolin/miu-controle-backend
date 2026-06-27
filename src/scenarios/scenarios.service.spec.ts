@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ScenariosService } from './scenarios.service';
 import { AnalysisService } from '../analysis/analysis.service';
 import { GoalsService } from '../goals/goals.service';
+import { PlanningService } from '../planning/planning.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScenarioType } from './dto/simulate-scenario.dto';
 
@@ -24,6 +25,10 @@ describe('ScenariosService', () => {
 
   const mockAnalysisService = {};
 
+  const mockPlanningService = {
+    suggestCuts: jest.fn().mockResolvedValue([]),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -31,6 +36,7 @@ describe('ScenariosService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: GoalsService, useValue: mockGoalsService },
         { provide: AnalysisService, useValue: mockAnalysisService },
+        { provide: PlanningService, useValue: mockPlanningService },
       ],
     }).compile();
 

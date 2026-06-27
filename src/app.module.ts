@@ -35,7 +35,6 @@ import { AnalysisModule } from './analysis/analysis.module';
 import { PlanningModule } from './planning/planning.module';
 import { EmergencyFundModule } from './emergency-fund/emergency-fund.module';
 import { ScenariosModule } from './scenarios/scenarios.module';
-import { AffordabilityModule } from './affordability/affordability.module';
 import { ProactiveAlertsModule } from './proactive-alerts/proactive-alerts.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { HealthScoreModule } from './health-score/health-score.module';
@@ -127,7 +126,6 @@ import { ProjectsModule } from './projects/projects.module';
     PlanningModule,
     EmergencyFundModule,
     ScenariosModule,
-    AffordabilityModule,
     ProactiveAlertsModule,
     RecommendationsModule,
     HealthScoreModule,

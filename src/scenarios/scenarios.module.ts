@@ -3,10 +3,11 @@ import { ScenariosController } from './scenarios.controller';
 import { ScenariosService } from './scenarios.service';
 import { AnalysisModule } from '../analysis/analysis.module';
 import { GoalsModule } from '../goals/goals.module';
+import { PlanningModule } from '../planning/planning.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [AnalysisModule, GoalsModule, PrismaModule],
+  imports: [AnalysisModule, GoalsModule, PlanningModule, PrismaModule],
   controllers: [ScenariosController],
   providers: [ScenariosService],
   exports: [ScenariosService]

@@ -157,7 +157,8 @@ export class PlanningService {
       };
   }
 
-  private async suggestCuts(userId: string, targetCutAmount: number) {
+  // Público: reutilizado pelo ScenariosService para sugerir cortes reais.
+  async suggestCuts(userId: string, targetCutAmount: number) {
       // Analisar gastos em categorias NÃO ESSENCIAIS
       const nonEssentialCategories = await this.prisma.category.findMany({
           where: { userId, isEssential: false }
