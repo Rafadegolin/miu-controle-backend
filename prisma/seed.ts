@@ -26,29 +26,6 @@ async function main() {
   // ... melhor não limpar tudo se não for pedido explicitamente, mas seed geralmente é destrutivo ou upsert.
   // Vamos usar Upserts onde possível.
 
-  // ==================== MOEDAS ====================
-  console.log('💱 Criando moedas...');
-  const currencies = [
-    { code: 'BRL', name: 'Real Brasileiro', symbol: 'R$' },
-    { code: 'USD', name: 'Dólar Americano', symbol: '$' },
-    { code: 'EUR', name: 'Euro', symbol: '€' },
-  ];
-  for (const c of currencies) await prisma.currency.upsert({ where: { code: c.code }, update: {}, create: c });
-
-  // Taxas
-  const usd = await prisma.currency.findUnique({ where: { code: 'USD' } });
-  const brl = await prisma.currency.findUnique({ where: { code: 'BRL' } });
-  if (usd && brl) {
-      // Upsert logic for exchange rate slightly complex due to no unique composite key on seeds usually, 
-      // but let's just create if not exists or ignore.
-      const exists = await prisma.exchangeRate.findFirst({ where: { fromCurrencyId: usd.id, toCurrencyId: brl.id } });
-      if (!exists) {
-        await prisma.exchangeRate.create({
-            data: { fromCurrencyId: usd.id, toCurrencyId: brl.id, rate: 5.25, source: 'MANUAL' } 
-        });
-      }
-  }
-
   // ==================== CATEGORIAS ====================
   console.log('📁 Criando categorias...');
   // Categorias padrão

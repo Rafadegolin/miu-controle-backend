@@ -157,24 +157,6 @@ describe('PredictiveAnalyticsService', () => {
     });
   });
 
-  describe('calculateFinancialHealthScore', () => {
-    it('should calculate health score correctly', async () => {
-      // Mock history with positive balance
-      jest.spyOn(service as any, 'getMonthlyHistory').mockResolvedValue([
-        { income: 5000, expense: 3000, balance: 2000 },
-        { income: 5000, expense: 3000, balance: 2000 },
-        { income: 5000, expense: 3000, balance: 2000 },
-      ]);
-      mockPrismaService.budget.findMany.mockResolvedValue([]); // No budgets
-
-      const result = await service.calculateFinancialHealthScore('userid');
-      
-      expect(result.score).toBeGreaterThan(0);
-      expect(result.level).toBeDefined();
-      expect(result.breakdown.savingsRate.rate).toBe(40); // (2000/5000)*100 = 40%
-    });
-  });
-
   describe('forecastGoalAchievement', () => {
     it('should forecast goal completion date', async () => {
       mockPrismaService.goal.findUnique.mockResolvedValue({

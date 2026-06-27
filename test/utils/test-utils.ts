@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import { PrismaService } from '../../src/prisma/prisma.service';
 
 /**
@@ -15,6 +19,12 @@ export async function createTestApp(
   const app = moduleFixture.createNestApplication();
 
   // Aplicar mesmas configurações do main.ts
+  app.setGlobalPrefix('api');
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+    prefix: 'v',
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

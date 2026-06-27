@@ -42,12 +42,6 @@ export class AnalyticsController {
     return this.analyticsService.dismissAnomaly(userId, anomalyId);
   }
 
-  @Get('financial-health')
-  @ApiOperation({ summary: 'Calculate Financial Health Score (0-100)' })
-  async getFinancialHealth(@CurrentUser('id') userId: string) {
-    return this.analyticsService.calculateFinancialHealthScore(userId);
-  }
-
   @Get('trends')
   @ApiOperation({ summary: 'Get financial trends (3M, 6M, 1Y)' })
   async getTrends(

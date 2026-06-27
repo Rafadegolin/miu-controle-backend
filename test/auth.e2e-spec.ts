@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, VersioningType, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -16,6 +16,8 @@ describe('Auth (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
+    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1', prefix: 'v' });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -42,7 +44,7 @@ describe('Auth (e2e)', () => {
       const email = generateTestEmail();
 
       return request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email,
           password: 'Test@123456',
@@ -61,7 +63,7 @@ describe('Auth (e2e)', () => {
       const email = generateTestEmail();
 
       // Register first user
-      await request(app.getHttpServer()).post('/auth/register').send({
+      await request(app.getHttpServer()).post('/api/v1/auth/register').send({
         email,
         password: 'Test@123456',
         fullName: 'First User',
@@ -69,7 +71,7 @@ describe('Auth (e2e)', () => {
 
       // Try to register with same email
       return request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email,
           password: 'Different@123',
@@ -80,7 +82,7 @@ describe('Auth (e2e)', () => {
 
     it('should return 400 for invalid email', () => {
       return request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email: 'invalid-email',
           password: 'Test@123456',
@@ -91,7 +93,7 @@ describe('Auth (e2e)', () => {
 
     it('should return 400 for weak password', () => {
       return request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email: generateTestEmail(),
           password: '123',
@@ -107,7 +109,7 @@ describe('Auth (e2e)', () => {
 
     beforeEach(async () => {
       testEmail = generateTestEmail();
-      await request(app.getHttpServer()).post('/auth/register').send({
+      await request(app.getHttpServer()).post('/api/v1/auth/register').send({
         email: testEmail,
         password: testPassword,
         fullName: 'Test User',
@@ -116,7 +118,7 @@ describe('Auth (e2e)', () => {
 
     it('should login with valid credentials', () => {
       return request(app.getHttpServer())
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: testEmail,
           password: testPassword,
@@ -131,7 +133,7 @@ describe('Auth (e2e)', () => {
 
     it('should return 401 for invalid credentials', () => {
       return request(app.getHttpServer())
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: testEmail,
           password: 'WrongPassword@123',
@@ -141,7 +143,7 @@ describe('Auth (e2e)', () => {
 
     it('should return 401 for non-existent user', () => {
       return request(app.getHttpServer())
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: generateTestEmail(),
           password: testPassword,
@@ -156,7 +158,7 @@ describe('Auth (e2e)', () => {
 
       // Register and login
       const loginRes = await request(app.getHttpServer())
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email,
           password: 'Test@123456',
@@ -166,7 +168,7 @@ describe('Auth (e2e)', () => {
       const refreshToken = loginRes.body.refreshToken;
 
       return request(app.getHttpServer())
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .send({ refreshToken })
         .expect(200)
         .expect((res) => {
@@ -177,7 +179,7 @@ describe('Auth (e2e)', () => {
 
     it('should return 401 for invalid refresh token', () => {
       return request(app.getHttpServer())
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .send({ refreshToken: 'invalid-token' })
         .expect(401);
     });

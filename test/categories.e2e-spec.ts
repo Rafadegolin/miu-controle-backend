@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, VersioningType, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -17,6 +17,8 @@ describe('Categories (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
+    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1', prefix: 'v' });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -40,7 +42,7 @@ describe('Categories (e2e)', () => {
     // Create user
     const email = generateTestEmail();
     const registerRes = await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send({
         email,
         password: 'Test@123456',
@@ -53,7 +55,7 @@ describe('Categories (e2e)', () => {
   describe('POST /categories', () => {
     it('should create a new category', () => {
       return request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Alimentação',
@@ -72,7 +74,7 @@ describe('Categories (e2e)', () => {
     it('should create subcategory', async () => {
       // Create parent category
       const parentRes = await request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Parent Category',
@@ -83,7 +85,7 @@ describe('Categories (e2e)', () => {
 
       // Create subcategory
       return request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Subcategory',
@@ -99,7 +101,7 @@ describe('Categories (e2e)', () => {
     it('should return 400 for incompatible parent type', async () => {
       // Create INCOME parent
       const parentRes = await request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Income Parent',
@@ -108,7 +110,7 @@ describe('Categories (e2e)', () => {
 
       // Try to create EXPENSE child
       return request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Expense Child',
@@ -122,7 +124,7 @@ describe('Categories (e2e)', () => {
   describe('GET /categories', () => {
     beforeEach(async () => {
       await request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Category 1',
@@ -130,7 +132,7 @@ describe('Categories (e2e)', () => {
         });
 
       await request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Category 2',
@@ -140,7 +142,7 @@ describe('Categories (e2e)', () => {
 
     it('should list all categories including system ones', () => {
       return request(app.getHttpServer())
-        .get('/categories')
+        .get('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -152,7 +154,7 @@ describe('Categories (e2e)', () => {
 
     it('should filter by type', () => {
       return request(app.getHttpServer())
-        .get('/categories?type=EXPENSE')
+        .get('/api/v1/categories?type=EXPENSE')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -171,7 +173,7 @@ describe('Categories (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Test Category',
@@ -183,7 +185,7 @@ describe('Categories (e2e)', () => {
 
     it('should return category details', () => {
       return request(app.getHttpServer())
-        .get(`/categories/${categoryId}`)
+        .get(`/api/v1/categories/${categoryId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -195,7 +197,7 @@ describe('Categories (e2e)', () => {
 
     it('should return 404 for non-existent category', () => {
       return request(app.getHttpServer())
-        .get('/categories/non-existent-id')
+        .get('/api/v1/categories/non-existent-id')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(404);
     });
@@ -206,7 +208,7 @@ describe('Categories (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Original Name',
@@ -218,7 +220,7 @@ describe('Categories (e2e)', () => {
 
     it('should update category', () => {
       return request(app.getHttpServer())
-        .patch(`/categories/${categoryId}`)
+        .patch(`/api/v1/categories/${categoryId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Updated Name',
@@ -237,7 +239,7 @@ describe('Categories (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'To Delete',
@@ -249,7 +251,7 @@ describe('Categories (e2e)', () => {
 
     it('should delete category without dependencies', () => {
       return request(app.getHttpServer())
-        .delete(`/categories/${categoryId}`)
+        .delete(`/api/v1/categories/${categoryId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -260,7 +262,7 @@ describe('Categories (e2e)', () => {
     it('should return 400 if category has transactions', async () => {
       // Create account first
       const accountRes = await request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Test Account',
@@ -270,7 +272,7 @@ describe('Categories (e2e)', () => {
 
       // Create transaction with this category
       await request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId: accountRes.body.id,
@@ -282,7 +284,7 @@ describe('Categories (e2e)', () => {
 
       // Try to delete category
       return request(app.getHttpServer())
-        .delete(`/categories/${categoryId}`)
+        .delete(`/api/v1/categories/${categoryId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(400);
     });
@@ -290,7 +292,7 @@ describe('Categories (e2e)', () => {
     it('should return 400 if category has children', async () => {
       // Create subcategory
       await request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Subcategory',
@@ -300,7 +302,7 @@ describe('Categories (e2e)', () => {
 
       // Try to delete parent
       return request(app.getHttpServer())
-        .delete(`/categories/${categoryId}`)
+        .delete(`/api/v1/categories/${categoryId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(400);
     });
@@ -311,7 +313,7 @@ describe('Categories (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/categories')
+        .post('/api/v1/categories')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Test Category',
@@ -323,7 +325,7 @@ describe('Categories (e2e)', () => {
 
     it('should return category statistics', () => {
       return request(app.getHttpServer())
-        .get(`/categories/${categoryId}/stats`)
+        .get(`/api/v1/categories/${categoryId}/stats`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {

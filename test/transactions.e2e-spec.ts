@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, VersioningType, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -19,6 +19,8 @@ describe('Transactions (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
+    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1', prefix: 'v' });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -42,7 +44,7 @@ describe('Transactions (e2e)', () => {
     // Create user and get auth token
     const email = generateTestEmail();
     const registerRes = await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send({
         email,
         password: 'Test@123456',
@@ -53,7 +55,7 @@ describe('Transactions (e2e)', () => {
 
     // Create a test account
     const accountRes = await request(app.getHttpServer())
-      .post('/accounts')
+      .post('/api/v1/accounts')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Test Account',
@@ -65,7 +67,7 @@ describe('Transactions (e2e)', () => {
 
     // Create a test category
     const categoryRes = await request(app.getHttpServer())
-      .post('/categories')
+      .post('/api/v1/categories')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Test Category',
@@ -78,7 +80,7 @@ describe('Transactions (e2e)', () => {
   describe('POST /transactions', () => {
     it('should create a new transaction', () => {
       return request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId,
@@ -98,7 +100,7 @@ describe('Transactions (e2e)', () => {
 
     it('should return 401 without auth', () => {
       return request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .send({
           accountId,
           type: 'EXPENSE',
@@ -110,7 +112,7 @@ describe('Transactions (e2e)', () => {
 
     it('should return 404 for invalid account', () => {
       return request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId: 'invalid',
@@ -126,7 +128,7 @@ describe('Transactions (e2e)', () => {
     beforeEach(async () => {
       // Create test transactions
       await request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId,
@@ -137,7 +139,7 @@ describe('Transactions (e2e)', () => {
         });
 
       await request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId,
@@ -150,7 +152,7 @@ describe('Transactions (e2e)', () => {
 
     it('should list all transactions', () => {
       return request(app.getHttpServer())
-        .get('/transactions')
+        .get('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -161,7 +163,7 @@ describe('Transactions (e2e)', () => {
 
     it('should filter by type', () => {
       return request(app.getHttpServer())
-        .get('/transactions?type=EXPENSE')
+        .get('/api/v1/transactions?type=EXPENSE')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -177,7 +179,7 @@ describe('Transactions (e2e)', () => {
       const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
       await request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId,
@@ -189,7 +191,7 @@ describe('Transactions (e2e)', () => {
         });
 
       await request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId,
@@ -206,7 +208,7 @@ describe('Transactions (e2e)', () => {
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
       return request(app.getHttpServer())
-        .get(`/transactions/stats/monthly?month=${month}`)
+        .get(`/api/v1/transactions/stats/monthly?month=${month}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -223,7 +225,7 @@ describe('Transactions (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId,
@@ -238,7 +240,7 @@ describe('Transactions (e2e)', () => {
 
     it('should update transaction', () => {
       return request(app.getHttpServer())
-        .patch(`/transactions/${transactionId}`)
+        .patch(`/api/v1/transactions/${transactionId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           description: 'Updated',
@@ -257,7 +259,7 @@ describe('Transactions (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId,
@@ -272,7 +274,7 @@ describe('Transactions (e2e)', () => {
 
     it('should delete transaction', () => {
       return request(app.getHttpServer())
-        .delete(`/transactions/${transactionId}`)
+        .delete(`/api/v1/transactions/${transactionId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {

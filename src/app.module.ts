@@ -18,8 +18,6 @@ import { EmailModule } from './email/email.module';
 import { ExportModule } from './export/export.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RecurringTransactionsModule } from './recurring-transactions/recurring-transactions.module';
-import { CurrenciesModule } from './currencies/currencies.module';
-import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
 import { ReportsModule } from './reports/reports.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
@@ -38,7 +36,6 @@ import { PlanningModule } from './planning/planning.module';
 import { EmergencyFundModule } from './emergency-fund/emergency-fund.module';
 import { ScenariosModule } from './scenarios/scenarios.module';
 import { AffordabilityModule } from './affordability/affordability.module';
-import { InflationSimulatorModule } from './inflation-simulator/inflation-simulator.module';
 import { ProactiveAlertsModule } from './proactive-alerts/proactive-alerts.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { HealthScoreModule } from './health-score/health-score.module';
@@ -98,8 +95,6 @@ import { ProjectsModule } from './projects/projects.module';
     ExportModule,
     NotificationsModule,
     RecurringTransactionsModule,
-    CurrenciesModule,
-    ExchangeRatesModule,
     ReportsModule,
     DashboardModule,
     HealthModule,
@@ -133,7 +128,6 @@ import { ProjectsModule } from './projects/projects.module';
     EmergencyFundModule,
     ScenariosModule,
     AffordabilityModule,
-    InflationSimulatorModule,
     ProactiveAlertsModule,
     RecommendationsModule,
     HealthScoreModule,
