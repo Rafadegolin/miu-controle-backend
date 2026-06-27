@@ -43,6 +43,7 @@ import { BrandsModule } from './brands/brands.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { BetterAuthMiddleware } from './auth/better-auth.middleware';
 import { ProjectsModule } from './projects/projects.module';
+import { ImportModule } from './import/import.module';
 
 @Module({
   imports: [
@@ -133,6 +134,7 @@ import { ProjectsModule } from './projects/projects.module';
     BrandsModule,
     OnboardingModule,
     ProjectsModule, // Planejamento de Despesas com Orçamentos (Issue #79)
+    ImportModule, // Importação de extratos OFX/CSV
   ],
   providers: [
     // 🚦 ThrottlerGuard global
