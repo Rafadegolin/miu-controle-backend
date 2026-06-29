@@ -24,11 +24,4 @@ export class ScenariosController {
   checkAffordability(@CurrentUser() user, @Body() dto: AffordabilityCheckDto) {
     return this.service.checkAffordability(user.id, dto);
   }
-
-  @Post('compare')
-  @ApiOperation({ summary: 'Comparar múltiplos cenários' })
-  compare(@CurrentUser() user, @Body() dtos: SimulateScenarioDto[]) {
-    // Placeholder for comparison logic
-    return []; 
-  }
 }

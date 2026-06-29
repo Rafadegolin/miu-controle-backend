@@ -3,6 +3,7 @@ import { PlanningService } from './planning.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { SavePlanDto } from './dto/save-plan.dto';
 
 @ApiTags('Planejamento Inteligente')
 @Controller('planning')
@@ -20,9 +21,9 @@ export class PlanningController {
   @Post('goal/:goalId/save')
   @ApiOperation({ summary: 'Salvar plano aprovado' })
   savePlan(
-      @Param('goalId') goalId: string, 
+      @Param('goalId') goalId: string,
       @CurrentUser() user,
-      @Body() planData: any 
+      @Body() planData: SavePlanDto,
   ) {
     return this.planningService.savePlan(user.id, goalId, planData);
   }

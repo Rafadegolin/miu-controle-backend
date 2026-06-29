@@ -120,17 +120,4 @@ export class NotificationsController {
   async remove(@CurrentUser() user: any, @Param('id') id: string) {
     return this.notificationsService.remove(user.id, id);
   }
-
-  @Post('test')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '[TESTE] Criar notificação de teste' })
-  async createTest(@CurrentUser() user: any) {
-    return this.notificationsService.create(
-      user.id,
-      'SYSTEM',
-      '🧪 Notificação de Teste',
-      'Esta é uma notificação de teste do sistema!',
-      { test: true },
-    );
-  }
 }

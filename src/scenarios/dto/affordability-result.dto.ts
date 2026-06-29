@@ -41,7 +41,4 @@ export class AffordabilityResultDto {
 
     @ApiProperty({ type: [String] })
     recommendations: string[];
-
-    @ApiProperty({ required: false })
-    alternatives?: string[];
 }

@@ -77,14 +77,16 @@ export class ScenariosService {
         }
     }
 
+    // Metas impactadas (motor real: saldo negativo coloca todas em risco)
+    const impactedGoals = await this.detectGoalImpact(userId, scenarioProjection);
+
     return {
         isViable,
         currentBalance,
         projectedBalance12Months: scenarioProjection,
         lowestBalance,
-        impactedGoals: [], // Simplified for MVP
+        impactedGoals,
         recommendations,
-        alternativeScenarios: []
     };
   }
 
@@ -267,7 +269,6 @@ export class ScenariosService {
         timingScore,
       },
       recommendations,
-      alternatives: [],
     };
   }
 
@@ -333,8 +334,28 @@ export class ScenariosService {
     userId: string,
     dto: AffordabilityCheckDto,
   ): Promise<number> {
-    // Max 10 points — placeholder simplificado (sem histórico ainda)
-    return 10;
+    // Max 10 points — quão "típica" é essa compra para a categoria, comparada
+    // à média de gasto por transação da categoria nos últimos 3 meses.
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - 3);
+
+    const agg = await this.prisma.transaction.aggregate({
+      where: {
+        userId,
+        categoryId: dto.categoryId,
+        type: 'EXPENSE',
+        date: { gte: start, lte: end },
+      },
+      _avg: { amount: true },
+      _count: true,
+    });
+
+    const avg = Number(agg._avg.amount || 0);
+    if (agg._count === 0 || avg <= 0) return 8; // Sem histórico → neutro
+    if (dto.amount <= avg) return 10; // Dentro do padrão
+    if (dto.amount <= avg * 2) return 6; // Acima da média
+    return 3; // Bem acima do padrão da categoria
   }
 
   private calculateTimingScore(currentBalance: number): number {
