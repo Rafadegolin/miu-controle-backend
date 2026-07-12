@@ -347,7 +347,7 @@ export class RecurringTransactionsService {
         date: recurring.nextOccurrence,
         tags: recurring.tags,
         notes: recurring.notes,
-        source: 'MANUAL',
+        source: 'RECURRING',
         status: 'COMPLETED',
         recurringTransactionId: recurring.id,
       },

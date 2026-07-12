@@ -16,6 +16,7 @@ import {
   TransactionType, // <-- REMOVER CategoryType daqui
 } from '@prisma/client';
 import { Sanitize } from '../../common/decorators/sanitize.decorator';
+import { ReceiptItemDto } from './receipt-item.dto';
 
 export class CreateTransactionDto {
   @ApiProperty({ example: 'uuid-da-conta' })
@@ -88,4 +89,24 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsEnum(TransactionSource)
   source?: TransactionSource;
+
+  // ===== Metadados de OCR (preenchidos ao confirmar um comprovante) =====
+  @ApiProperty({ required: false, description: 'URL do comprovante no storage (OCR)' })
+  @IsOptional()
+  @IsString()
+  receiptImageUrl?: string;
+
+  @ApiProperty({ required: false, description: 'Texto bruto extraído do comprovante (OCR)' })
+  @IsOptional()
+  @IsString()
+  receiptRawText?: string;
+
+  @ApiProperty({
+    required: false,
+    type: [ReceiptItemDto],
+    description: 'Itens extraídos do cupom (OCR)',
+  })
+  @IsOptional()
+  @IsArray()
+  receiptItems?: ReceiptItemDto[];
 }

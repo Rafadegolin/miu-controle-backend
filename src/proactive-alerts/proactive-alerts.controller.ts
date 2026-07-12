@@ -1,8 +1,11 @@
 import { Controller, Get, Post, Param, UseGuards } from '@nestjs/common';
 import { ProactiveAlertsService } from './proactive-alerts.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service'; // Direct prisma usage for simple CRUD or inject Service method
 
 @ApiTags('Alertas Proativos')
@@ -34,7 +37,9 @@ export class ProactiveAlertsController {
   }
 
   @Post('run-checks')
-  @ApiOperation({ summary: 'Executar verificações manualmente (Dev/Debug)' })
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Executar verificações manualmente (somente ADMIN)' })
   async runChecks() {
        await this.service.runDailyChecks();
        return { message: 'Checks executed' };

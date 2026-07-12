@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
@@ -15,6 +15,19 @@ async function bootstrap() {
     contentSecurityPolicy: false, // Permite Swagger funcionar
     crossOriginEmbedderPolicy: false, // Compatibilidade com recursos externos
   }));
+
+  // 🔢 Prefixo global /api + versionamento por URI (/api/v1/...)
+  // Não é preciso excluir o Better Auth: ele é montado como middleware Express
+  // no path literal /api/auth/* (AppModule.configure → forRoutes), fora do
+  // roteador de controllers, então setGlobalPrefix/enableVersioning não o tocam.
+  // O auth nativo (@Controller('auth')) passa a viver em /api/v1/auth, separado
+  // do namespace OAuth /api/auth.
+  app.setGlobalPrefix('api');
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1', // todos os controllers viram v1 sem precisar de @Version
+    prefix: 'v',
+  });
 
   // CORS
   app.enableCors({

@@ -146,6 +146,10 @@ export class TransactionsService {
         notes: createTransactionDto.notes,
         source: createTransactionDto.source || 'MANUAL',
         status: 'COMPLETED',
+        // Metadados de OCR (preenchidos ao confirmar um comprovante)
+        receiptImageUrl: createTransactionDto.receiptImageUrl,
+        receiptRawText: createTransactionDto.receiptRawText,
+        receiptItems: createTransactionDto.receiptItems as any,
         // AI fields
         aiCategorized,
         aiConfidence: aiConfidence !== null ? aiConfidence : undefined,
@@ -330,6 +334,9 @@ export class TransactionsService {
       where: { id },
       data: {
         ...updateTransactionDto,
+        // receiptItems é Json no Prisma; o tipo ReceiptItemDto[] herdado do
+        // CreateTransactionDto não casa com o input Json, então normalizamos aqui.
+        receiptItems: updateTransactionDto.receiptItems as any,
         date: updateTransactionDto.date
           ? new Date(updateTransactionDto.date)
           : undefined,

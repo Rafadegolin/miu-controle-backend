@@ -3,9 +3,12 @@ import { OnboardingService } from './onboarding.service';
 import { UpdateOnboardingStepDto } from './dto/update-onboarding-step.dto';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Onboarding')
 @Controller('onboarding')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class OnboardingController {
   constructor(private readonly onboardingService: OnboardingService) {}
 

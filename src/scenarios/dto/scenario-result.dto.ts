@@ -29,7 +29,4 @@ export class ScenarioResultDto {
 
     @ApiProperty({ type: [ActionRecommendation] })
     recommendations: ActionRecommendation[];
-
-    @ApiProperty({ required: false })
-    alternativeScenarios?: any[];
 }

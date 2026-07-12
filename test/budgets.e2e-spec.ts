@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, VersioningType, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -18,6 +18,8 @@ describe('Budgets (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
+    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1', prefix: 'v' });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -41,7 +43,7 @@ describe('Budgets (e2e)', () => {
     // Create user
     const email = generateTestEmail();
     const registerRes = await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send({
         email,
         password: 'Test@123456',
@@ -52,7 +54,7 @@ describe('Budgets (e2e)', () => {
 
     // Create category
     const categoryRes = await request(app.getHttpServer())
-      .post('/categories')
+      .post('/api/v1/categories')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Test Category',
@@ -65,7 +67,7 @@ describe('Budgets (e2e)', () => {
   describe('POST /budgets', () => {
     it('should create a new budget', () => {
       return request(app.getHttpServer())
-        .post('/budgets')
+        .post('/api/v1/budgets')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           categoryId,
@@ -84,7 +86,7 @@ describe('Budgets (e2e)', () => {
     it('should return 409 for duplicate budget', async () => {
       // Create first budget
       await request(app.getHttpServer())
-        .post('/budgets')
+        .post('/api/v1/budgets')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           categoryId,
@@ -95,7 +97,7 @@ describe('Budgets (e2e)', () => {
 
       // Try to create duplicate
       return request(app.getHttpServer())
-        .post('/budgets')
+        .post('/api/v1/budgets')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           categoryId,
@@ -110,7 +112,7 @@ describe('Budgets (e2e)', () => {
   describe('GET /budgets', () => {
     beforeEach(async () => {
       await request(app.getHttpServer())
-        .post('/budgets')
+        .post('/api/v1/budgets')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           categoryId,
@@ -122,7 +124,7 @@ describe('Budgets (e2e)', () => {
 
     it('should list all budgets', () => {
       return request(app.getHttpServer())
-        .get('/budgets')
+        .get('/api/v1/budgets')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -140,7 +142,7 @@ describe('Budgets (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/budgets')
+        .post('/api/v1/budgets')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           categoryId,
@@ -154,7 +156,7 @@ describe('Budgets (e2e)', () => {
 
     it('should return budget details', () => {
       return request(app.getHttpServer())
-        .get(`/budgets/${budgetId}`)
+        .get(`/api/v1/budgets/${budgetId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -170,7 +172,7 @@ describe('Budgets (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/budgets')
+        .post('/api/v1/budgets')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           categoryId,
@@ -184,7 +186,7 @@ describe('Budgets (e2e)', () => {
 
     it('should update budget', () => {
       return request(app.getHttpServer())
-        .patch(`/budgets/${budgetId}`)
+        .patch(`/api/v1/budgets/${budgetId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           amount: 1500,
@@ -202,7 +204,7 @@ describe('Budgets (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/budgets')
+        .post('/api/v1/budgets')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           categoryId,
@@ -216,7 +218,7 @@ describe('Budgets (e2e)', () => {
 
     it('should delete budget', () => {
       return request(app.getHttpServer())
-        .delete(`/budgets/${budgetId}`)
+        .delete(`/api/v1/budgets/${budgetId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -228,7 +230,7 @@ describe('Budgets (e2e)', () => {
   describe('GET /budgets/summary', () => {
     beforeEach(async () => {
       await request(app.getHttpServer())
-        .post('/budgets')
+        .post('/api/v1/budgets')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           categoryId,
@@ -240,7 +242,7 @@ describe('Budgets (e2e)', () => {
 
     it('should return budget summary', () => {
       return request(app.getHttpServer())
-        .get('/budgets/summary')
+        .get('/api/v1/budgets/summary')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {

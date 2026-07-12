@@ -21,7 +21,8 @@
     "prisma:studio": "npx prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:migrate": "npx prisma migrate dev",
-    "prisma:generate": "npx prisma generate"
+    "prisma:generate": "npx prisma generate",
+    "openapi:export": "ts-node -r tsconfig-paths/register scripts/export-openapi.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, VersioningType, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -18,6 +18,8 @@ describe('Audit (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
+    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1', prefix: 'v' });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -31,7 +33,7 @@ describe('Audit (e2e)', () => {
 
     // Criar usuário de teste e fazer login
     const registerResponse = await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send({
         email: `audit-test-${Date.now()}@example.com`,
         password: 'Test@12345',
@@ -67,7 +69,7 @@ describe('Audit (e2e)', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .get('/audit/me')
+        .get('/api/v1/audit/me')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
@@ -87,7 +89,7 @@ describe('Audit (e2e)', () => {
 
     it('deve filtrar por ação', async () => {
       const response = await request(app.getHttpServer())
-        .get('/audit/me')
+        .get('/api/v1/audit/me')
         .query({ action: AuditAction.CREATE })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
@@ -97,7 +99,7 @@ describe('Audit (e2e)', () => {
 
     it('deve filtrar por entidade', async () => {
       const response = await request(app.getHttpServer())
-        .get('/audit/me')
+        .get('/api/v1/audit/me')
         .query({ entity: AuditEntity.TRANSACTION })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
@@ -112,7 +114,7 @@ describe('Audit (e2e)', () => {
       const endDate = new Date('2025-12-31').toISOString();
 
       const response = await request(app.getHttpServer())
-        .get('/audit/me')
+        .get('/api/v1/audit/me')
         .query({ startDate, endDate })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
@@ -121,12 +123,12 @@ describe('Audit (e2e)', () => {
     });
 
     it('deve retornar 401 se não autenticado', async () => {
-      await request(app.getHttpServer()).get('/audit/me').expect(401);
+      await request(app.getHttpServer()).get('/api/v1/audit/me').expect(401);
     });
 
     it('deve respeitar limite de paginação', async () => {
       const response = await request(app.getHttpServer())
-        .get('/audit/me')
+        .get('/api/v1/audit/me')
         .query({ take: 5 })
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
@@ -154,7 +156,7 @@ describe('Audit (e2e)', () => {
 
     it('deve retornar histórico de uma entidade', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/audit/entity/${AuditEntity.TRANSACTION}/${testEntityId}`)
+        .get(`/api/v1/audit/entity/${AuditEntity.TRANSACTION}/${testEntityId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
@@ -166,7 +168,7 @@ describe('Audit (e2e)', () => {
 
     it('deve retornar 401 se não autenticado', async () => {
       await request(app.getHttpServer())
-        .get(`/audit/entity/${AuditEntity.TRANSACTION}/${testEntityId}`)
+        .get(`/api/v1/audit/entity/${AuditEntity.TRANSACTION}/${testEntityId}`)
         .expect(401);
     });
   });
@@ -177,7 +179,7 @@ describe('Audit (e2e)', () => {
     beforeAll(async () => {
       // Criar uma conta para testes
       const accountResponse = await request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Test Account for Audit',
@@ -190,7 +192,7 @@ describe('Audit (e2e)', () => {
 
     it('deve criar log de auditoria ao criar transação', async () => {
       const transactionResponse = await request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId,
@@ -223,7 +225,7 @@ describe('Audit (e2e)', () => {
     it('deve criar log com before/after ao atualizar transação', async () => {
       // Criar transação
       const createResponse = await request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId,
@@ -240,7 +242,7 @@ describe('Audit (e2e)', () => {
 
       // Atualizar transação
       await request(app.getHttpServer())
-        .patch(`/transactions/${transactionId}`)
+        .patch(`/api/v1/transactions/${transactionId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           amount: 150,
@@ -270,7 +272,7 @@ describe('Audit (e2e)', () => {
     it('deve criar log com before ao deletar transação', async () => {
       // Criar transação
       const createResponse = await request(app.getHttpServer())
-        .post('/transactions')
+        .post('/api/v1/transactions')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           accountId,
@@ -287,7 +289,7 @@ describe('Audit (e2e)', () => {
 
       // Deletar transação
       await request(app.getHttpServer())
-        .delete(`/transactions/${transactionId}`)
+        .delete(`/api/v1/transactions/${transactionId}`)
         .set('Authorization', `Bearer ${accessToken}`);
 
       // Aguardar criação do log de delete

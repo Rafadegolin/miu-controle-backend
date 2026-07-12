@@ -88,16 +88,80 @@ export class ProactiveAlertsService {
   }
 
   async checkBudgetStatus(userId: string) {
-      // 80% usage check already exists in NotificationsModule checkBudgets()
-      // We can add a "90% usage" or specific prediction here
-      // "At this rate, you will exceed budget X in 5 days" - Predictive
-      // For MVP, skipping to avoid duplication with NotificationsService
+      // A notificação de 80% já existe no NotificationsModule. Aqui geramos
+      // alertas proativos mais urgentes: orçamento perto do limite (>=90%) ou
+      // já estourado (>=100%) no mês corrente.
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const budgets = await this.prisma.budget.findMany({
+          where: { userId, period: 'MONTHLY' },
+          include: { category: true },
+      });
+
+      for (const budget of budgets) {
+          const limit = Number(budget.amount);
+          if (limit <= 0) continue;
+
+          const agg = await this.prisma.transaction.aggregate({
+              where: {
+                  userId,
+                  categoryId: budget.categoryId,
+                  type: 'EXPENSE',
+                  date: { gte: start, lte: end },
+              },
+              _sum: { amount: true },
+          });
+          const spent = Number(agg._sum.amount || 0);
+          const pct = (spent / limit) * 100;
+          const categoryName = budget.category?.name ?? 'categoria';
+
+          if (pct >= 100) {
+              await this.createAlert(
+                  userId,
+                  `BUDGET_EXCEEDED_${budget.id}`,
+                  AlertPriority.CRITICAL,
+                  `Você estourou o orçamento de ${categoryName}: R$ ${spent.toFixed(2)} de R$ ${limit.toFixed(2)}.`,
+                  true,
+              );
+          } else if (pct >= 90) {
+              await this.createAlert(
+                  userId,
+                  `BUDGET_NEAR_${budget.id}`,
+                  AlertPriority.WARNING,
+                  `Seu orçamento de ${categoryName} está em ${pct.toFixed(0)}% (R$ ${spent.toFixed(2)} de R$ ${limit.toFixed(2)}).`,
+                  true,
+              );
+          }
+      }
   }
 
   async checkPositiveStreaks(userId: string) {
-      // Logic: Did user stay within budget for 7 days?
-      // Check last 7 days transactions vs daily budget average?
-      // Simplified: Just generic positive reinforcement
+      // Reforço positivo: usuário registrou transações em cada um dos últimos
+      // 7 dias (consistência no lançamento — comportamento que queremos premiar).
+      const today = new Date();
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(today.getDate() - 7);
+
+      const transactions = await this.prisma.transaction.findMany({
+          where: { userId, date: { gte: sevenDaysAgo, lte: today } },
+          select: { date: true },
+      });
+
+      const daysWithActivity = new Set(
+          transactions.map((t) => t.date.toISOString().slice(0, 10)),
+      );
+
+      if (daysWithActivity.size >= 7) {
+          await this.createAlert(
+              userId,
+              'POSITIVE_STREAK',
+              AlertPriority.POSITIVE,
+              'Parabéns! Você registrou seus gastos por 7 dias seguidos. Continue assim! 🎉',
+              false,
+          );
+      }
   }
 
   async createAlert(

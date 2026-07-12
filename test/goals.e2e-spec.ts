@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, VersioningType, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -18,6 +18,8 @@ describe('Goals (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
+    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1', prefix: 'v' });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -41,7 +43,7 @@ describe('Goals (e2e)', () => {
     // Create user
     const email = generateTestEmail();
     const registerRes = await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send({
         email,
         password: 'Test@123456',
@@ -52,7 +54,7 @@ describe('Goals (e2e)', () => {
 
     // Create account for contributions
     const accountRes = await request(app.getHttpServer())
-      .post('/accounts')
+      .post('/api/v1/accounts')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Test Account',
@@ -66,7 +68,7 @@ describe('Goals (e2e)', () => {
   describe('POST /goals', () => {
     it('should create a new goal', () => {
       return request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Comprar Carro',
@@ -85,7 +87,7 @@ describe('Goals (e2e)', () => {
 
     it('should return 400 for past target date', () => {
       return request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Test Goal',
@@ -99,7 +101,7 @@ describe('Goals (e2e)', () => {
   describe('GET /goals', () => {
     beforeEach(async () => {
       await request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Goal 1',
@@ -107,7 +109,7 @@ describe('Goals (e2e)', () => {
         });
 
       await request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Goal 2',
@@ -117,7 +119,7 @@ describe('Goals (e2e)', () => {
 
     it('should list all goals', () => {
       return request(app.getHttpServer())
-        .get('/goals')
+        .get('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -130,7 +132,7 @@ describe('Goals (e2e)', () => {
 
     it('should filter by status', () => {
       return request(app.getHttpServer())
-        .get('/goals?status=ACTIVE')
+        .get('/api/v1/goals?status=ACTIVE')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -144,7 +146,7 @@ describe('Goals (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Test Goal',
@@ -156,7 +158,7 @@ describe('Goals (e2e)', () => {
 
     it('should return goal details with contributions', () => {
       return request(app.getHttpServer())
-        .get(`/goals/${goalId}`)
+        .get(`/api/v1/goals/${goalId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -172,7 +174,7 @@ describe('Goals (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Test Goal',
@@ -184,7 +186,7 @@ describe('Goals (e2e)', () => {
 
     it('should add contribution to goal', () => {
       return request(app.getHttpServer())
-        .post(`/goals/${goalId}/contribute`)
+        .post(`/api/v1/goals/${goalId}/contribute`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           amount: 1000,
@@ -200,7 +202,7 @@ describe('Goals (e2e)', () => {
     it('should mark goal as COMPLETED when target is reached', async () => {
       // First contribution
       await request(app.getHttpServer())
-        .post(`/goals/${goalId}/contribute`)
+        .post(`/api/v1/goals/${goalId}/contribute`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           amount: 5000,
@@ -208,7 +210,7 @@ describe('Goals (e2e)', () => {
 
       // Check if goal is completed
       return request(app.getHttpServer())
-        .get(`/goals/${goalId}`)
+        .get(`/api/v1/goals/${goalId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -223,7 +225,7 @@ describe('Goals (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Test Goal',
@@ -234,7 +236,7 @@ describe('Goals (e2e)', () => {
 
       // Add initial contribution
       await request(app.getHttpServer())
-        .post(`/goals/${goalId}/contribute`)
+        .post(`/api/v1/goals/${goalId}/contribute`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           amount: 2000,
@@ -243,7 +245,7 @@ describe('Goals (e2e)', () => {
 
     it('should withdraw from goal', () => {
       return request(app.getHttpServer())
-        .post(`/goals/${goalId}/withdraw`)
+        .post(`/api/v1/goals/${goalId}/withdraw`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           amount: 500,
@@ -257,7 +259,7 @@ describe('Goals (e2e)', () => {
 
     it('should return 400 if withdrawal exceeds current amount', () => {
       return request(app.getHttpServer())
-        .post(`/goals/${goalId}/withdraw`)
+        .post(`/api/v1/goals/${goalId}/withdraw`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           amount: 5000,
@@ -271,7 +273,7 @@ describe('Goals (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Original Goal',
@@ -283,7 +285,7 @@ describe('Goals (e2e)', () => {
 
     it('should update goal', () => {
       return request(app.getHttpServer())
-        .patch(`/goals/${goalId}`)
+        .patch(`/api/v1/goals/${goalId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Updated Goal',
@@ -302,7 +304,7 @@ describe('Goals (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'To Delete',
@@ -314,7 +316,7 @@ describe('Goals (e2e)', () => {
 
     it('should delete goal without contributions', () => {
       return request(app.getHttpServer())
-        .delete(`/goals/${goalId}`)
+        .delete(`/api/v1/goals/${goalId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -325,14 +327,14 @@ describe('Goals (e2e)', () => {
     it('should return 400 if goal has contributions', async () => {
       // Add contribution
       await request(app.getHttpServer())
-        .post(`/goals/${goalId}/contribute`)
+        .post(`/api/v1/goals/${goalId}/contribute`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           amount: 100,
         });
 
       return request(app.getHttpServer())
-        .delete(`/goals/${goalId}`)
+        .delete(`/api/v1/goals/${goalId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(400);
     });
@@ -341,7 +343,7 @@ describe('Goals (e2e)', () => {
   describe('GET /goals/summary', () => {
     beforeEach(async () => {
       await request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Goal 1',
@@ -349,7 +351,7 @@ describe('Goals (e2e)', () => {
         });
 
       await request(app.getHttpServer())
-        .post('/goals')
+        .post('/api/v1/goals')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Goal 2',
@@ -359,7 +361,7 @@ describe('Goals (e2e)', () => {
 
     it('should return goals summary', () => {
       return request(app.getHttpServer())
-        .get('/goals/summary')
+        .get('/api/v1/goals/summary')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {

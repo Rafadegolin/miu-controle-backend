@@ -52,5 +52,6 @@ prisma/migrations/*_backup/
 *.temp
 .cache
 
-# Documentos
-/docs
+# Documentos (ignora docs locais, mas versiona o handoff da API)
+/docs/*
+!/docs/handoff/

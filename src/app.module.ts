@@ -18,8 +18,6 @@ import { EmailModule } from './email/email.module';
 import { ExportModule } from './export/export.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RecurringTransactionsModule } from './recurring-transactions/recurring-transactions.module';
-import { CurrenciesModule } from './currencies/currencies.module';
-import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
 import { ReportsModule } from './reports/reports.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
@@ -37,8 +35,6 @@ import { AnalysisModule } from './analysis/analysis.module';
 import { PlanningModule } from './planning/planning.module';
 import { EmergencyFundModule } from './emergency-fund/emergency-fund.module';
 import { ScenariosModule } from './scenarios/scenarios.module';
-import { AffordabilityModule } from './affordability/affordability.module';
-import { InflationSimulatorModule } from './inflation-simulator/inflation-simulator.module';
 import { ProactiveAlertsModule } from './proactive-alerts/proactive-alerts.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { HealthScoreModule } from './health-score/health-score.module';
@@ -47,6 +43,8 @@ import { BrandsModule } from './brands/brands.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { BetterAuthMiddleware } from './auth/better-auth.middleware';
 import { ProjectsModule } from './projects/projects.module';
+import { ImportModule } from './import/import.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -98,8 +96,6 @@ import { ProjectsModule } from './projects/projects.module';
     ExportModule,
     NotificationsModule,
     RecurringTransactionsModule,
-    CurrenciesModule,
-    ExchangeRatesModule,
     ReportsModule,
     DashboardModule,
     HealthModule,
@@ -132,8 +128,6 @@ import { ProjectsModule } from './projects/projects.module';
     PlanningModule,
     EmergencyFundModule,
     ScenariosModule,
-    AffordabilityModule,
-    InflationSimulatorModule,
     ProactiveAlertsModule,
     RecommendationsModule,
     HealthScoreModule,
@@ -141,6 +135,8 @@ import { ProjectsModule } from './projects/projects.module';
     BrandsModule,
     OnboardingModule,
     ProjectsModule, // Planejamento de Despesas com Orçamentos (Issue #79)
+    ImportModule, // Importação de extratos OFX/CSV
+    WhatsappModule, // Lançamento via WhatsApp (EvolutionAPI)
   ],
   providers: [
     // 🚦 ThrottlerGuard global

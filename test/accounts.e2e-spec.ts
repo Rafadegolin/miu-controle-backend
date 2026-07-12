@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, VersioningType, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -18,6 +18,8 @@ describe('Accounts (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
+    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1', prefix: 'v' });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -41,7 +43,7 @@ describe('Accounts (e2e)', () => {
     // Create a test user and get auth token
     const email = generateTestEmail();
     const registerRes = await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send({
         email,
         password: 'Test@123456',
@@ -55,7 +57,7 @@ describe('Accounts (e2e)', () => {
   describe('POST /accounts', () => {
     it('should create a new account', () => {
       return request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Conta Corrente',
@@ -73,7 +75,7 @@ describe('Accounts (e2e)', () => {
 
     it('should return 401 without auth token', () => {
       return request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .send({
           name: 'Test Account',
           type: 'CHECKING',
@@ -83,7 +85,7 @@ describe('Accounts (e2e)', () => {
 
     it('should return 400 for invalid account type', () => {
       return request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Test Account',
@@ -97,7 +99,7 @@ describe('Accounts (e2e)', () => {
     beforeEach(async () => {
       // Create test accounts
       await request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Conta 1',
@@ -106,7 +108,7 @@ describe('Accounts (e2e)', () => {
         });
 
       await request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Conta 2',
@@ -117,7 +119,7 @@ describe('Accounts (e2e)', () => {
 
     it('should list all active accounts', () => {
       return request(app.getHttpServer())
-        .get('/accounts')
+        .get('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -127,14 +129,14 @@ describe('Accounts (e2e)', () => {
     });
 
     it('should return 401 without auth token', () => {
-      return request(app.getHttpServer()).get('/accounts').expect(401);
+      return request(app.getHttpServer()).get('/api/v1/accounts').expect(401);
     });
   });
 
   describe('GET /accounts/balance', () => {
     beforeEach(async () => {
       await request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Conta 1',
@@ -143,7 +145,7 @@ describe('Accounts (e2e)', () => {
         });
 
       await request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Conta 2',
@@ -154,7 +156,7 @@ describe('Accounts (e2e)', () => {
 
     it('should return total balance', () => {
       return request(app.getHttpServer())
-        .get('/accounts/balance')
+        .get('/api/v1/accounts/balance')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
@@ -170,7 +172,7 @@ describe('Accounts (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Original Name',
@@ -183,7 +185,7 @@ describe('Accounts (e2e)', () => {
 
     it('should update account information', () => {
       return request(app.getHttpServer())
-        .patch(`/accounts/${accountId}`)
+        .patch(`/api/v1/accounts/${accountId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'Updated Name',
@@ -198,7 +200,7 @@ describe('Accounts (e2e)', () => {
 
     it('should return 404 for non-existent account', () => {
       return request(app.getHttpServer())
-        .patch('/accounts/non-existent-id')
+        .patch('/api/v1/accounts/non-existent-id')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ name: 'New Name' })
         .expect(404);
@@ -210,7 +212,7 @@ describe('Accounts (e2e)', () => {
 
     beforeEach(async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/accounts')
+        .post('/api/v1/accounts')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'To Delete',
@@ -222,7 +224,7 @@ describe('Accounts (e2e)', () => {
 
     it('should soft delete account', async () => {
       await request(app.getHttpServer())
-        .delete(`/accounts/${accountId}`)
+        .delete(`/api/v1/accounts/${accountId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
