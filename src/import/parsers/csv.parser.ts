@@ -33,7 +33,10 @@ export interface CsvParseOptions {
  * Parser de CSV genérico com mapeamento de colunas configurável. Sem dependência
  * externa — splitter próprio com suporte a campos entre aspas.
  */
-export function parseCsv(content: string, options: CsvParseOptions): ParsedTx[] {
+export function parseCsv(
+  content: string,
+  options: CsvParseOptions,
+): ParsedTx[] {
   const delimiter = options.delimiter ?? ';';
   const decimalSeparator = options.decimalSeparator ?? ',';
   const dateFormat = options.dateFormat ?? 'DD/MM/YYYY';

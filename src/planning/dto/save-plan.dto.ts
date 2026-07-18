@@ -20,7 +20,10 @@ export class SavePlanDto {
   @IsBoolean()
   isViable: boolean;
 
-  @ApiProperty({ example: 250.0, description: 'Folga mensal (surplus - depósito)' })
+  @ApiProperty({
+    example: 250.0,
+    description: 'Folga mensal (surplus - depósito)',
+  })
   @IsNumber()
   margin: number;
 
@@ -31,12 +34,16 @@ export class SavePlanDto {
 
   @ApiProperty({
     type: [Object],
-    description: 'Passos do plano de ação ({ title, description, value?, type })',
+    description:
+      'Passos do plano de ação ({ title, description, value?, type })',
   })
   @IsArray()
   actionPlan: any[];
 
-  @ApiProperty({ type: [Object], description: 'Cortes sugeridos em categorias não essenciais' })
+  @ApiProperty({
+    type: [Object],
+    description: 'Cortes sugeridos em categorias não essenciais',
+  })
   @IsArray()
   suggestedCuts: any[];
 }

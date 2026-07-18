@@ -7,6 +7,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
   imports: [NotificationsModule],
   controllers: [ProactiveAlertsController],
   providers: [ProactiveAlertsService],
-  exports: [ProactiveAlertsService]
+  exports: [ProactiveAlertsService],
 })
 export class ProactiveAlertsModule {}

@@ -70,7 +70,7 @@ export class PredictiveAnalyticsService {
         // Check if it's a quota error and fallback is available
         const isQuotaError =
           error?.response?.status === 429 ||
-          (error as any)?.isQuotaError ||
+          error?.isQuotaError ||
           error?.message?.includes('quota') ||
           error?.message?.includes('limit');
 

@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsObject,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum MissionFrequency {
@@ -6,7 +13,7 @@ export enum MissionFrequency {
   WEEKLY = 'WEEKLY',
   MONTHLY = 'MONTHLY',
   ONEOFF = 'ONEOFF',
-  DYNAMIC = 'DYNAMIC'
+  DYNAMIC = 'DYNAMIC',
 }
 
 export class CreateMissionDto {
@@ -20,7 +27,10 @@ export class CreateMissionDto {
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ example: 'Faça 5 transações', description: 'Descrição da missão' })
+  @ApiProperty({
+    example: 'Faça 5 transações',
+    description: 'Descrição da missão',
+  })
   @IsString()
   @IsNotEmpty()
   description: string;
@@ -33,7 +43,10 @@ export class CreateMissionDto {
   @IsEnum(MissionFrequency)
   frequency: MissionFrequency;
 
-  @ApiProperty({ example: { type: 'TRANSACTION_COUNT', target: 5 }, description: 'Critério JSON' })
+  @ApiProperty({
+    example: { type: 'TRANSACTION_COUNT', target: 5 },
+    description: 'Critério JSON',
+  })
   @IsObject()
   criteria: any;
 }

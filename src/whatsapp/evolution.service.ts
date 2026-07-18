@@ -21,8 +21,8 @@ export class EvolutionService {
   isConfigured(): boolean {
     return Boolean(
       this.config.get('EVOLUTION_API_URL') &&
-        this.config.get('EVOLUTION_API_KEY') &&
-        this.config.get('EVOLUTION_INSTANCE'),
+      this.config.get('EVOLUTION_API_KEY') &&
+      this.config.get('EVOLUTION_INSTANCE'),
     );
   }
 
@@ -49,7 +49,7 @@ export class EvolutionService {
     try {
       await firstValueFrom(
         this.http.post(
-          `${url!.replace(/\/$/, '')}/message/sendText/${instance}`,
+          `${url.replace(/\/$/, '')}/message/sendText/${instance}`,
           { number, text },
           { headers: { apikey: apiKey, 'Content-Type': 'application/json' } },
         ),

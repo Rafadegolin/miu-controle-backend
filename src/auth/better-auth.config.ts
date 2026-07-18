@@ -69,8 +69,8 @@ export function getAuth(): Promise<any> {
       // ─── Providers Sociais ──────────────────────────────────────────────────
       socialProviders: {
         google: {
-          clientId: process.env.GOOGLE_CLIENT_ID!,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         },
         // Apple Sign-In — obrigatório para publicação na App Store (#93)
         // O clientSecret não é uma string fixa: é um JWT assinado com a chave P8

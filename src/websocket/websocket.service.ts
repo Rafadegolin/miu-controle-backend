@@ -27,13 +27,15 @@ export class WebsocketService {
    */
   emitToUser(userId: string, event: string, data: any) {
     if (!this.server) {
-      this.logger.warn('⚠️ WebSocket server not initialized, cannot emit event');
+      this.logger.warn(
+        '⚠️ WebSocket server not initialized, cannot emit event',
+      );
       return;
     }
 
     const room = `user:${userId}`;
     this.server.to(room).emit(event, data);
-    
+
     this.logger.debug(`📡 Event emitted: ${event} to ${room}`);
   }
 
@@ -44,7 +46,9 @@ export class WebsocketService {
    */
   emitToAll(event: string, data: any) {
     if (!this.server) {
-      this.logger.warn('⚠️ WebSocket server not initialized, cannot emit event');
+      this.logger.warn(
+        '⚠️ WebSocket server not initialized, cannot emit event',
+      );
       return;
     }
 

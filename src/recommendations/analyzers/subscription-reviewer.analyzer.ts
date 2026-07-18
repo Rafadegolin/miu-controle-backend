@@ -15,23 +15,23 @@ export class SubscriptionReviewerAnalyzer implements Analyzer {
       where: { userId, isActive: true, type: 'EXPENSE' },
     });
 
-    // TODO: Compara com uso real (difícil sem dados de acesso a serviços), 
+    // TODO: Compara com uso real (difícil sem dados de acesso a serviços),
     // mas pode sugerir revisão de assinaturas caras (> R$ 50) ou antigas.
-    
+
     for (const sub of recurring) {
-        const amount = Number(sub.amount);
-        // Exemplo simples: Se for > 100 reais, sugere revisão
-        if (amount > 100) {
-            results.push({
-                type: RecommendationType.SUBSCRIPTION_REVIEW,
-                title: `Revisar assinatura: ${sub.description}`,
-                description: `Sua assinatura de ${sub.description} custa R$ ${amount.toFixed(2)}. Você ainda utiliza este serviço com frequência que justifique o valor?`,
-                impact: amount, // Impacto é o valor total mensal
-                difficulty: 2, // Geralmente fácil cancelar
-                category: 'Assinaturas',
-                metadata: { recurringTransactionId: sub.id }
-            });
-        }
+      const amount = Number(sub.amount);
+      // Exemplo simples: Se for > 100 reais, sugere revisão
+      if (amount > 100) {
+        results.push({
+          type: RecommendationType.SUBSCRIPTION_REVIEW,
+          title: `Revisar assinatura: ${sub.description}`,
+          description: `Sua assinatura de ${sub.description} custa R$ ${amount.toFixed(2)}. Você ainda utiliza este serviço com frequência que justifique o valor?`,
+          impact: amount, // Impacto é o valor total mensal
+          difficulty: 2, // Geralmente fácil cancelar
+          category: 'Assinaturas',
+          metadata: { recurringTransactionId: sub.id },
+        });
+      }
     }
 
     return results;

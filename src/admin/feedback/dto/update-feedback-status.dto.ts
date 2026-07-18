@@ -5,7 +5,7 @@ export enum FeedbackStatus {
   PENDING = 'PENDING',
   IN_REVIEW = 'IN_REVIEW',
   RESOLVED = 'RESOLVED',
-  REJECTED = 'REJECTED'
+  REJECTED = 'REJECTED',
 }
 
 export class UpdateFeedbackStatusDto {

@@ -21,7 +21,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EncryptionService } from '../../common/services/encryption.service';
 import { OpenAiService } from '../services/openai.service';
 import { GeminiService } from '../services/gemini.service';
-import { SaveAiConfigDto, UpdateAiConfigDto, TestApiKeyDto } from '../dto/ai-config.dto';
+import {
+  SaveAiConfigDto,
+  UpdateAiConfigDto,
+  TestApiKeyDto,
+} from '../dto/ai-config.dto';
 import { AuditService } from '../../audit/audit.service';
 import { AuditAction } from '../../common/enums/audit-action.enum';
 import { AuditEntity } from '../../common/enums/audit-entity.enum';
@@ -227,8 +231,10 @@ export class AiConfigController {
   @ApiOperation({ summary: 'Delete AI configuration' })
   @ApiResponse({ status: 204, description: 'Configuration deleted' })
   async deleteConfig(@CurrentUser('id') userId: string) {
-    const config = await this.prisma.userAiConfig.findUnique({ where: { userId } });
-    
+    const config = await this.prisma.userAiConfig.findUnique({
+      where: { userId },
+    });
+
     await this.prisma.userAiConfig.delete({
       where: { userId },
     });

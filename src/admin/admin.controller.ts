@@ -93,18 +93,18 @@ export class AdminController {
   @Get('dashboard/stats')
   @ApiOperation({ summary: 'Obter estatísticas gerais do sistema' })
   async getDashboardStats() {
-    const [totalUsers, activeUsers, totalSubscriptions, totalTransactions] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.user.count({ where: { isActive: true } }),
-      this.prisma.userSubscription.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.transaction.count()
-    ]);
+    const [totalUsers, activeUsers, totalSubscriptions, totalTransactions] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.user.count({ where: { isActive: true } }),
+        this.prisma.userSubscription.count({ where: { status: 'ACTIVE' } }),
+        this.prisma.transaction.count(),
+      ]);
 
     return {
-       users: { total: totalUsers, active: activeUsers },
-       subscriptions: { active: totalSubscriptions },
-       system: { transactions: totalTransactions, health: 'OK' }
+      users: { total: totalUsers, active: activeUsers },
+      subscriptions: { active: totalSubscriptions },
+      system: { transactions: totalTransactions, health: 'OK' },
     };
   }
-
 }

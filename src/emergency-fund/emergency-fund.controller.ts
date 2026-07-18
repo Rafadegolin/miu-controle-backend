@@ -26,28 +26,25 @@ export class EmergencyFundController {
   @Post('withdraw')
   @ApiOperation({ summary: 'Realizar saque de emergência' })
   withdraw(
-      @CurrentUser() user,
-      @Body() body: { amount: number; reason: string }
+    @CurrentUser() user,
+    @Body() body: { amount: number; reason: string },
   ) {
     return this.service.withdraw(user.id, body.amount, body.reason);
   }
 
   @Post('contribute')
   @ApiOperation({ summary: 'Adicionar valor ao colchão' })
-  contribute(
-      @CurrentUser() user,
-      @Body() body: { amount: number }
-  ) {
-      return this.service.contribute(user.id, body.amount);
+  contribute(@CurrentUser() user, @Body() body: { amount: number }) {
+    return this.service.contribute(user.id, body.amount);
   }
 
   @Patch('update')
   @ApiOperation({ summary: 'Atualizar meta do colchão' })
   update(
-      @CurrentUser() user,
-      @Body() body: { targetAmount?: number; linkedGoalId?: string }
+    @CurrentUser() user,
+    @Body() body: { targetAmount?: number; linkedGoalId?: string },
   ) {
-      return this.service.updateSettings(user.id, body);
+    return this.service.updateSettings(user.id, body);
   }
 
   @Get('history')

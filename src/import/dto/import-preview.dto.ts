@@ -24,12 +24,20 @@ export class ImportPreviewDto {
   format: ImportFormat;
 
   // ===== Opções de CSV =====
-  @ApiProperty({ required: false, example: ';', description: 'Separador de colunas (default ;)' })
+  @ApiProperty({
+    required: false,
+    example: ';',
+    description: 'Separador de colunas (default ;)',
+  })
   @IsOptional()
   @IsString()
   delimiter?: string;
 
-  @ApiProperty({ required: false, example: ',', description: 'Separador decimal (default ,)' })
+  @ApiProperty({
+    required: false,
+    example: ',',
+    description: 'Separador decimal (default ,)',
+  })
   @IsOptional()
   @IsString()
   decimalSeparator?: string;
@@ -37,37 +45,54 @@ export class ImportPreviewDto {
   @ApiProperty({
     required: false,
     example: 'DD/MM/YYYY',
-    description: 'Formato da data: DD/MM/YYYY | DD-MM-YYYY | YYYY-MM-DD | MM/DD/YYYY',
+    description:
+      'Formato da data: DD/MM/YYYY | DD-MM-YYYY | YYYY-MM-DD | MM/DD/YYYY',
   })
   @IsOptional()
   @IsString()
   dateFormat?: string;
 
-  @ApiProperty({ required: false, example: true, description: 'Primeira linha é cabeçalho (default true)' })
+  @ApiProperty({
+    required: false,
+    example: true,
+    description: 'Primeira linha é cabeçalho (default true)',
+  })
   @IsOptional()
   @Transform(({ value }) => value === true || value === 'true')
   @IsBoolean()
   hasHeader?: boolean;
 
-  @ApiProperty({ required: false, description: 'Coluna da data (nome do cabeçalho ou índice)' })
+  @ApiProperty({
+    required: false,
+    description: 'Coluna da data (nome do cabeçalho ou índice)',
+  })
   @ValidateIf((o) => o.format === ImportFormat.CSV)
   @IsNotEmpty({ message: 'dateColumn é obrigatório para CSV' })
   @IsString()
   dateColumn?: string;
 
-  @ApiProperty({ required: false, description: 'Coluna do valor (nome ou índice)' })
+  @ApiProperty({
+    required: false,
+    description: 'Coluna do valor (nome ou índice)',
+  })
   @ValidateIf((o) => o.format === ImportFormat.CSV)
   @IsNotEmpty({ message: 'amountColumn é obrigatório para CSV' })
   @IsString()
   amountColumn?: string;
 
-  @ApiProperty({ required: false, description: 'Coluna da descrição (nome ou índice)' })
+  @ApiProperty({
+    required: false,
+    description: 'Coluna da descrição (nome ou índice)',
+  })
   @ValidateIf((o) => o.format === ImportFormat.CSV)
   @IsNotEmpty({ message: 'descriptionColumn é obrigatório para CSV' })
   @IsString()
   descriptionColumn?: string;
 
-  @ApiProperty({ required: false, description: 'Coluna do tipo C/D (opcional; senão infere pelo sinal)' })
+  @ApiProperty({
+    required: false,
+    description: 'Coluna do tipo C/D (opcional; senão infere pelo sinal)',
+  })
   @IsOptional()
   @IsString()
   typeColumn?: string;

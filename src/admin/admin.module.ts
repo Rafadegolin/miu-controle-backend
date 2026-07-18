@@ -6,7 +6,12 @@ import { ReleaseNotesModule } from './release-notes/release-notes.module';
 import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
-  imports: [PrismaModule, CacheHelperModule, ReleaseNotesModule, FeedbackModule],
+  imports: [
+    PrismaModule,
+    CacheHelperModule,
+    ReleaseNotesModule,
+    FeedbackModule,
+  ],
   controllers: [AdminController],
 })
 export class AdminModule {}

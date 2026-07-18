@@ -9,6 +9,6 @@ import { EmailModule } from '../email/email.module';
   imports: [PrismaModule, EmailModule],
   controllers: [AnalysisController],
   providers: [AnalysisService, AnalysisJob],
-  exports: [AnalysisService]
+  exports: [AnalysisService],
 })
 export class AnalysisModule {}

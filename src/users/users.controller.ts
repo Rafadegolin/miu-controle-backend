@@ -127,7 +127,11 @@ export class UsersController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Listar usuários (Admin)' })
   findAllUsers(@Query() query: any) {
-      return this.usersService.findAllUsers(query.page, query.limit, query.search);
+    return this.usersService.findAllUsers(
+      query.page,
+      query.limit,
+      query.search,
+    );
   }
 
   @Patch('admin/:id/ban')
@@ -135,7 +139,7 @@ export class UsersController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Banir/Desbanir usuário (Admin)' })
   toggleBan(@Param('id') id: string, @Body() body: { isActive: boolean }) {
-      return this.usersService.toggleBan(id, body.isActive);
+    return this.usersService.toggleBan(id, body.isActive);
   }
 
   @Patch('admin/:id/role')
@@ -143,6 +147,6 @@ export class UsersController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Promover/Rebaixar usuário (Admin)' })
   updateRole(@Param('id') id: string, @Body() body: { role: string }) {
-      return this.usersService.updateRole(id, body.role);
+    return this.usersService.updateRole(id, body.role);
   }
 }

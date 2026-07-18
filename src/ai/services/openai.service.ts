@@ -4,7 +4,7 @@ import { OpenAI } from 'openai';
 /**
  * Base service for OpenAI integration
  * Provides common functionality for all AI features
- * 
+ *
  * SECURITY:
  * - Never logs API keys
  * - Implements timeout and retry logic
@@ -46,14 +46,14 @@ export class OpenAiService {
     options?: Partial<OpenAI.Chat.ChatCompletionCreateParams>,
   ): Promise<OpenAI.Chat.ChatCompletion> {
     try {
-      const response = await client.chat.completions.create({
+      const response = (await client.chat.completions.create({
         model,
         messages,
         temperature: 0.3, // Low temperature for consistency
         max_tokens: 500,
         stream: false, // Ensure we get complete response, not streaming
         ...options,
-      }) as OpenAI.Chat.ChatCompletion; // Type assertion since stream: false
+      })) as OpenAI.Chat.ChatCompletion; // Type assertion since stream: false
 
       // Log usage (without sensitive data)
       this.logger.debug(
@@ -91,9 +91,7 @@ export class OpenAiService {
       );
     } else if (errorMessage.includes('timeout')) {
       this.logger.error('OpenAI request timeout');
-      throw new Error(
-        'Tempo de resposta excedido. Tente novamente.',
-      );
+      throw new Error('Tempo de resposta excedido. Tente novamente.');
     } else {
       this.logger.error(`OpenAI error (${statusCode}): ${errorMessage}`);
       throw new Error(
@@ -110,14 +108,14 @@ export class OpenAiService {
   async testApiKey(apiKey: string): Promise<boolean> {
     try {
       const client = this.initializeClient(apiKey);
-      
+
       // Make minimal request to test key
       await client.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: 'test' }],
         max_tokens: 5,
       });
-      
+
       return true;
     } catch {
       return false;
@@ -131,13 +129,10 @@ export class OpenAiService {
    * @param completionTokens - Number of completion tokens
    * @returns Estimated cost in USD
    */
-  public calculateCost(
-    promptTokens: number,
-    completionTokens: number,
-  ): number {
+  public calculateCost(promptTokens: number, completionTokens: number): number {
     // gpt-4o-mini pricing (per 1M tokens)
     const INPUT_PRICE = 0.15; // $0.15 per 1M tokens
-    const OUTPUT_PRICE = 0.60; // $0.60 per 1M tokens
+    const OUTPUT_PRICE = 0.6; // $0.60 per 1M tokens
 
     const promptCost = (promptTokens / 1_000_000) * INPUT_PRICE;
     const completionCost = (completionTokens / 1_000_000) * OUTPUT_PRICE;
@@ -147,20 +142,29 @@ export class OpenAiService {
   /**
    * Refine text using OpenAI
    */
-  async enhanceText(text: string, apiKey: string, modelName: string = 'gpt-4o-mini'): Promise<string> {
+  async enhanceText(
+    text: string,
+    apiKey: string,
+    modelName: string = 'gpt-4o-mini',
+  ): Promise<string> {
     try {
       const client = this.initializeClient(apiKey);
-      
-      const response = await this.createChatCompletion(client, [
-        {
-          role: 'system',
-          content: 'Você é um consultor financeiro pessoal experiente e empático. Melhore a recomendação do usuário para ser clara, acionável e motivadora. Máximo 2 frases.'
-        },
-        {
-          role: 'user',
-          content: `Refine esta recomendação: "${text}"`
-        }
-      ], modelName);
+
+      const response = await this.createChatCompletion(
+        client,
+        [
+          {
+            role: 'system',
+            content:
+              'Você é um consultor financeiro pessoal experiente e empático. Melhore a recomendação do usuário para ser clara, acionável e motivadora. Máximo 2 frases.',
+          },
+          {
+            role: 'user',
+            content: `Refine esta recomendação: "${text}"`,
+          },
+        ],
+        modelName,
+      );
 
       return response.choices[0]?.message?.content?.trim() || text;
     } catch (error) {

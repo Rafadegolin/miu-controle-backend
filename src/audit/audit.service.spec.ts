@@ -176,7 +176,11 @@ describe('AuditService', () => {
           entity,
           entityId,
           action: AuditAction.CREATE,
-          user: { id: 'user-1', email: 'test@example.com', fullName: 'Test User' },
+          user: {
+            id: 'user-1',
+            email: 'test@example.com',
+            fullName: 'Test User',
+          },
         },
       ];
 

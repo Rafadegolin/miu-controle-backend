@@ -9,7 +9,12 @@ import { HealthScoreModule } from '../health-score/health-score.module'; // To u
 import { AiModule } from '../ai/ai.module';
 
 @Module({
-  imports: [PrismaModule, EventEmitterModule.forRoot(), HealthScoreModule, AiModule],
+  imports: [
+    PrismaModule,
+    EventEmitterModule.forRoot(),
+    HealthScoreModule,
+    AiModule,
+  ],
   controllers: [GamificationController],
   providers: [GamificationService, MissionsService, GamificationListener],
   exports: [GamificationService, MissionsService],

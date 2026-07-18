@@ -6,13 +6,9 @@ import { ProjectionsController } from './projections.controller';
 import { ProjectionsService } from './projections.service';
 
 @Module({
-  imports: [
-    PrismaModule,
-    PredictionsModule,
-    RecurringTransactionsModule
-  ],
+  imports: [PrismaModule, PredictionsModule, RecurringTransactionsModule],
   controllers: [ProjectionsController],
   providers: [ProjectionsService],
-  exports: [ProjectionsService]
+  exports: [ProjectionsService],
 })
 export class ProjectionsModule {}

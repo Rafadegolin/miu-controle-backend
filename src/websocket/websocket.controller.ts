@@ -18,9 +18,10 @@ export class WebsocketController {
   @Get('status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get WebSocket status',
-    description: 'Returns current WebSocket connection statistics and connected users'
+    description:
+      'Returns current WebSocket connection statistics and connected users',
   })
   async getStatus() {
     const connectedUsers = await this.websocketService.getConnectedUsers();

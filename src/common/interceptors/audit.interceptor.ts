@@ -13,7 +13,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 /**
  * Interceptor para capturar automaticamente operações críticas e criar logs de auditoria
- * 
+ *
  * Captura:
  * - POST, PATCH, DELETE em rotas auditáveis
  * - Dados do usuário (userId do JWT)
@@ -85,7 +85,10 @@ export class AuditInterceptor implements NestInterceptor {
           });
         } catch (error) {
           // Não bloquear a resposta se houver erro no log
-          console.error('❌ Erro ao criar log de auditoria no interceptor:', error.message);
+          console.error(
+            '❌ Erro ao criar log de auditoria no interceptor:',
+            error.message,
+          );
         }
       }),
     );
@@ -123,7 +126,10 @@ export class AuditInterceptor implements NestInterceptor {
         return { action: AuditAction.CREATE, entity: AuditEntity.CATEGORY };
       }
       if (path.startsWith('/recurring-transactions')) {
-        return { action: AuditAction.CREATE, entity: AuditEntity.RECURRING_TRANSACTION };
+        return {
+          action: AuditAction.CREATE,
+          entity: AuditEntity.RECURRING_TRANSACTION,
+        };
       }
       if (path === '/auth/register') {
         return { action: AuditAction.REGISTER, entity: AuditEntity.USER };
@@ -135,43 +141,91 @@ export class AuditInterceptor implements NestInterceptor {
 
     if (method === 'PATCH') {
       if (path.match(/^\/transactions\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.UPDATE, entity: AuditEntity.TRANSACTION, entityId };
+        return {
+          action: AuditAction.UPDATE,
+          entity: AuditEntity.TRANSACTION,
+          entityId,
+        };
       }
       if (path.match(/^\/accounts\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.UPDATE, entity: AuditEntity.ACCOUNT, entityId };
+        return {
+          action: AuditAction.UPDATE,
+          entity: AuditEntity.ACCOUNT,
+          entityId,
+        };
       }
       if (path.match(/^\/budgets\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.UPDATE, entity: AuditEntity.BUDGET, entityId };
+        return {
+          action: AuditAction.UPDATE,
+          entity: AuditEntity.BUDGET,
+          entityId,
+        };
       }
       if (path.match(/^\/goals\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.UPDATE, entity: AuditEntity.GOAL, entityId };
+        return {
+          action: AuditAction.UPDATE,
+          entity: AuditEntity.GOAL,
+          entityId,
+        };
       }
       if (path.match(/^\/categories\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.UPDATE, entity: AuditEntity.CATEGORY, entityId };
+        return {
+          action: AuditAction.UPDATE,
+          entity: AuditEntity.CATEGORY,
+          entityId,
+        };
       }
       if (path.match(/^\/recurring-transactions\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.UPDATE, entity: AuditEntity.RECURRING_TRANSACTION, entityId };
+        return {
+          action: AuditAction.UPDATE,
+          entity: AuditEntity.RECURRING_TRANSACTION,
+          entityId,
+        };
       }
     }
 
     if (method === 'DELETE') {
       if (path.match(/^\/transactions\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.DELETE, entity: AuditEntity.TRANSACTION, entityId };
+        return {
+          action: AuditAction.DELETE,
+          entity: AuditEntity.TRANSACTION,
+          entityId,
+        };
       }
       if (path.match(/^\/accounts\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.DELETE, entity: AuditEntity.ACCOUNT, entityId };
+        return {
+          action: AuditAction.DELETE,
+          entity: AuditEntity.ACCOUNT,
+          entityId,
+        };
       }
       if (path.match(/^\/budgets\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.DELETE, entity: AuditEntity.BUDGET, entityId };
+        return {
+          action: AuditAction.DELETE,
+          entity: AuditEntity.BUDGET,
+          entityId,
+        };
       }
       if (path.match(/^\/goals\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.DELETE, entity: AuditEntity.GOAL, entityId };
+        return {
+          action: AuditAction.DELETE,
+          entity: AuditEntity.GOAL,
+          entityId,
+        };
       }
       if (path.match(/^\/categories\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.DELETE, entity: AuditEntity.CATEGORY, entityId };
+        return {
+          action: AuditAction.DELETE,
+          entity: AuditEntity.CATEGORY,
+          entityId,
+        };
       }
       if (path.match(/^\/recurring-transactions\/[a-f0-9-]{36}$/i)) {
-        return { action: AuditAction.DELETE, entity: AuditEntity.RECURRING_TRANSACTION, entityId };
+        return {
+          action: AuditAction.DELETE,
+          entity: AuditEntity.RECURRING_TRANSACTION,
+          entityId,
+        };
       }
     }
 

@@ -1,8 +1,26 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Req, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  UseGuards,
+  Req,
+  Query,
+} from '@nestjs/common';
 import { FeedbackService } from './feedback.service';
 import { CreateFeedbackDto, FeedbackType } from './dto/create-feedback.dto';
-import { UpdateFeedbackStatusDto, FeedbackStatus } from './dto/update-feedback-status.dto';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  UpdateFeedbackStatusDto,
+  FeedbackStatus,
+} from './dto/update-feedback-status.dto';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -40,7 +58,7 @@ export class FeedbackController {
   @ApiQuery({ name: 'type', enum: FeedbackType, required: false })
   findAll(
     @Query('status') status?: FeedbackStatus,
-    @Query('type') type?: FeedbackType
+    @Query('type') type?: FeedbackType,
   ) {
     return this.feedbackService.findAll({ status, type });
   }
@@ -53,7 +71,7 @@ export class FeedbackController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateFeedbackStatusDto,
-    @Req() req
+    @Req() req,
   ) {
     return this.feedbackService.updateStatus(id, dto, req.user.id);
   }

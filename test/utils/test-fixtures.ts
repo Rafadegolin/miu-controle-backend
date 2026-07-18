@@ -66,27 +66,27 @@ export const testTransactions = {
   },
   income: {
     description: 'Salário mensal',
-    amount: 5000.00,
+    amount: 5000.0,
     type: 'INCOME' as const,
     date: new Date().toISOString(),
   },
   transfer: {
     description: 'Transferência entre contas',
-    amount: 500.00,
+    amount: 500.0,
     type: 'TRANSFER' as const,
     date: new Date().toISOString(),
   },
 };
 
 export const testBudgets = {
-  food:  {
-    amount: 800.00,
+  food: {
+    amount: 800.0,
     period: 'MONTHLY' as const,
     startDate: new Date().toISOString(),
     alertPercentage: 80,
   },
   transport: {
-    amount: 400.00,
+    amount: 400.0,
     period: 'MONTHLY' as const,
     startDate: new Date().toISOString(),
     alertPercentage: 90,
@@ -97,7 +97,7 @@ export const testGoals = {
   vacation: {
     name: 'Viagem de Férias',
     description: 'Economizar para viagem à Europa',
-    targetAmount: 10000.00,
+    targetAmount: 10000.0,
     targetDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 ano
     color: '#9C27B0',
     icon: 'plane',
@@ -106,7 +106,7 @@ export const testGoals = {
   emergency: {
     name: 'Fundo de Emergência',
     description: 'Reserva para imprevistos',
-    targetAmount: 20000.00,
+    targetAmount: 20000.0,
     color: '#F44336',
     icon: 'shield',
     priority: 1,

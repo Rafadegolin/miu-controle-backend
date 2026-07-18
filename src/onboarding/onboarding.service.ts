@@ -19,7 +19,7 @@ export class OnboardingService {
         hasCompletedOnboarding: true,
         onboardingStep: true,
         fullName: true,
-        avatarUrl: true
+        avatarUrl: true,
       },
     });
     return user;
@@ -37,7 +37,7 @@ export class OnboardingService {
     if (!user) throw new BadRequestException('Usuário não encontrado');
 
     if (user.hasCompletedOnboarding) {
-        return { message: 'Onboarding já concluído anteriormente.' };
+      return { message: 'Onboarding já concluído anteriormente.' };
     }
 
     // 1. Atualizar Preferências do Usuário
@@ -63,12 +63,12 @@ export class OnboardingService {
           userId,
           isAiEnabled: dto.isAiEnabled ?? true,
           personality: dto.aiPersonality || 'educator',
-          usesCorporateKey: true // Default for new users? Or logic elsewhere
+          usesCorporateKey: true, // Default for new users? Or logic elsewhere
         },
         update: {
           isAiEnabled: dto.isAiEnabled ?? true,
-          personality: dto.aiPersonality || 'educator'
-        }
+          personality: dto.aiPersonality || 'educator',
+        },
       });
     }
 
@@ -77,28 +77,34 @@ export class OnboardingService {
     // Vamos criar um Goal genérico para eles sentirem o sistema.
     const hasGoals = await this.prisma.goal.count({ where: { userId } });
     if (hasGoals === 0) {
-        await this.prisma.goal.create({
-            data: {
-                userId,
-                name: 'Minha Primeira Meta',
-                description: 'Objetivo criado durante o onboarding',
-                targetAmount: 1000,
-                currentAmount: 0,
-                targetDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)), // 1 ano
-                color: '#10B981',
-                icon: '🎯',
-                status: 'ACTIVE'
-            }
-        });
+      await this.prisma.goal.create({
+        data: {
+          userId,
+          name: 'Minha Primeira Meta',
+          description: 'Objetivo criado durante o onboarding',
+          targetAmount: 1000,
+          currentAmount: 0,
+          targetDate: new Date(
+            new Date().setFullYear(new Date().getFullYear() + 1),
+          ), // 1 ano
+          color: '#10B981',
+          icon: '🎯',
+          status: 'ACTIVE',
+        },
+      });
     }
 
     // 4. Gamification: Award XP and Badge
     try {
-        await this.gamificationService.awardXp(userId, 200, 'ONBOARDING_COMPLETE');
-        // TODO: Create badge logic if Badge system is fully ready with codes
-        // await this.gamificationService.awardBadge(userId, 'FIRST_STEPS');
+      await this.gamificationService.awardXp(
+        userId,
+        200,
+        'ONBOARDING_COMPLETE',
+      );
+      // TODO: Create badge logic if Badge system is fully ready with codes
+      // await this.gamificationService.awardBadge(userId, 'FIRST_STEPS');
     } catch (e) {
-        this.logger.error('Failed to award onboarding XP', e);
+      this.logger.error('Failed to award onboarding XP', e);
     }
 
     return { success: true, message: 'Onboarding concluído com sucesso!' };

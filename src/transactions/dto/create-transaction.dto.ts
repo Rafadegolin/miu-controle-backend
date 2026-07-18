@@ -91,12 +91,18 @@ export class CreateTransactionDto {
   source?: TransactionSource;
 
   // ===== Metadados de OCR (preenchidos ao confirmar um comprovante) =====
-  @ApiProperty({ required: false, description: 'URL do comprovante no storage (OCR)' })
+  @ApiProperty({
+    required: false,
+    description: 'URL do comprovante no storage (OCR)',
+  })
   @IsOptional()
   @IsString()
   receiptImageUrl?: string;
 
-  @ApiProperty({ required: false, description: 'Texto bruto extraído do comprovante (OCR)' })
+  @ApiProperty({
+    required: false,
+    description: 'Texto bruto extraído do comprovante (OCR)',
+  })
   @IsOptional()
   @IsString()
   receiptRawText?: string;

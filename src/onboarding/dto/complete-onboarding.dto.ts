@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsBoolean, IsIn, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsIn,
+  IsNumber,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CompleteOnboardingDto {
@@ -17,7 +23,10 @@ export class CompleteOnboardingDto {
   @IsOptional()
   monthlyIncome?: number;
 
-  @ApiProperty({ example: 'https://bucket-url/avatar.png', description: 'URL do avatar' })
+  @ApiProperty({
+    example: 'https://bucket-url/avatar.png',
+    description: 'URL do avatar',
+  })
   @IsString()
   @IsOptional()
   avatarUrl?: string;
@@ -37,12 +46,15 @@ export class CompleteOnboardingDto {
   @IsOptional()
   isAiEnabled?: boolean;
 
-  @ApiProperty({ example: 'investor', description: 'Personalidade da IA: conservative, investor, educator' })
+  @ApiProperty({
+    example: 'investor',
+    description: 'Personalidade da IA: conservative, investor, educator',
+  })
   @IsString()
   @IsOptional()
   @IsIn(['conservative', 'investor', 'educator'])
   aiPersonality?: string;
-  
+
   // Optional: Initial Goal or Income Amount could be passed here if handled by service directly
   // But usually step-by-step saves intermediate data or creates resources via specific endpoints (like /goals).
   // For simplicity, let's assume specific resources are created via their own modules during the onboarding steps,

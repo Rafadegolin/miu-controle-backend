@@ -10,7 +10,7 @@ import { MetricsService } from '../../health/metrics.service';
 
 /**
  * Interceptor para coletar métricas automaticamente
- * 
+ *
  * Para cada requisição:
  * - Incrementa contador total de requisições
  * - Calcula e armazena tempo de resposta

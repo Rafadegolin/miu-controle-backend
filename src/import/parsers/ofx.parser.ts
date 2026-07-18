@@ -24,7 +24,9 @@ export interface ParsedTx {
  */
 export function parseOfx(content: string): ParsedTx[] {
   if (!content || !/<STMTTRN>/i.test(content)) {
-    throw new Error('Arquivo OFX inválido: nenhum lançamento <STMTTRN> encontrado.');
+    throw new Error(
+      'Arquivo OFX inválido: nenhum lançamento <STMTTRN> encontrado.',
+    );
   }
 
   // Quebra em blocos de transação. Cada bloco vai do <STMTTRN> até o próximo

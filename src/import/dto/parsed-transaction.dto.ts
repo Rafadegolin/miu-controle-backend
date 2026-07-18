@@ -18,7 +18,10 @@ export class ParsedTransactionDto {
   @IsDateString()
   date: string;
 
-  @ApiProperty({ example: 89.5, description: 'Valor sempre positivo; o tipo define o sinal' })
+  @ApiProperty({
+    example: 89.5,
+    description: 'Valor sempre positivo; o tipo define o sinal',
+  })
   @IsNumber()
   @Min(0.01)
   amount: number;
@@ -34,7 +37,8 @@ export class ParsedTransactionDto {
   @ApiProperty({
     required: false,
     example: 'FITID-202401150001',
-    description: 'Identificador externo (ex: FITID do OFX) usado para deduplicação',
+    description:
+      'Identificador externo (ex: FITID do OFX) usado para deduplicação',
   })
   @IsOptional()
   @IsString()

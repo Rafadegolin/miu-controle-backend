@@ -180,9 +180,9 @@ describe('CategoriesService', () => {
         _count: { transactions: 0 },
       });
 
-      await expect(
-        service.findOne(mockCategoryId, mockUserId),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.findOne(mockCategoryId, mockUserId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should allow access to system categories', async () => {
@@ -280,9 +280,9 @@ describe('CategoriesService', () => {
         _count: { transactions: 0 },
       });
 
-      await expect(
-        service.remove(mockCategoryId, mockUserId),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.remove(mockCategoryId, mockUserId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw BadRequestException if category has transactions', async () => {
@@ -294,9 +294,9 @@ describe('CategoriesService', () => {
       });
       mockPrismaService.transaction.count.mockResolvedValue(10);
 
-      await expect(
-        service.remove(mockCategoryId, mockUserId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.remove(mockCategoryId, mockUserId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException if category has children', async () => {
@@ -309,9 +309,9 @@ describe('CategoriesService', () => {
       mockPrismaService.transaction.count.mockResolvedValue(0);
       mockPrismaService.category.count.mockResolvedValue(3);
 
-      await expect(
-        service.remove(mockCategoryId, mockUserId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.remove(mockCategoryId, mockUserId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

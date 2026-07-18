@@ -41,7 +41,11 @@ export class CreateCategoryDto {
   @IsString()
   parentId?: string;
 
-  @ApiProperty({ description: 'Se a despesa é essencial (Moradia, Saúde, etc)', default: true, required: false })
+  @ApiProperty({
+    description: 'Se a despesa é essencial (Moradia, Saúde, etc)',
+    default: true,
+    required: false,
+  })
   @IsOptional()
   @IsEnum([true, false])
   isEssential?: boolean;

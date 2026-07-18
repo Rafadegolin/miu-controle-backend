@@ -10,6 +10,6 @@ import { PrismaModule } from '../prisma/prisma.module';
   imports: [AnalysisModule, GoalsModule, PlanningModule, PrismaModule],
   controllers: [ScenariosController],
   providers: [ScenariosService],
-  exports: [ScenariosService]
+  exports: [ScenariosService],
 })
 export class ScenariosModule {}

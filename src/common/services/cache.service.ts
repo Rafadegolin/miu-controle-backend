@@ -24,14 +24,17 @@ export class CacheService {
       `goals:${userId}:summary`,
     ];
 
-    await Promise.all(keys.map(pattern => this.deleteByPattern(pattern)));
+    await Promise.all(keys.map((pattern) => this.deleteByPattern(pattern)));
     this.logger.log(`🗑️  Cache invalidado para usuário ${userId}`);
   }
 
   /**
    * Invalidar cache de contas
    */
-  async invalidateAccountCache(userId: string, accountId?: string): Promise<void> {
+  async invalidateAccountCache(
+    userId: string,
+    accountId?: string,
+  ): Promise<void> {
     await this.cacheManager.del(`reports:${userId}:account`);
     await this.invalidateUserCache(userId);
     this.logger.log(`🗑️  Cache de contas invalidado para usuário ${userId}`);
@@ -40,7 +43,10 @@ export class CacheService {
   /**
    * Invalidar cache de orçamento
    */
-  async invalidateBudgetCache(userId: string, budgetId?: string): Promise<void> {
+  async invalidateBudgetCache(
+    userId: string,
+    budgetId?: string,
+  ): Promise<void> {
     await this.cacheManager.del(`budgets:${userId}:summary`);
     this.logger.log(`🗑️  Cache de budgets invalidado para usuário ${userId}`);
   }
@@ -64,7 +70,9 @@ export class CacheService {
 
       const keys = await store.client.keys(`${pattern}*`);
       if (keys.length > 0) {
-        await Promise.all(keys.map((key: string) => this.cacheManager.del(key)));
+        await Promise.all(
+          keys.map((key: string) => this.cacheManager.del(key)),
+        );
         this.logger.debug(`Deletadas ${keys.length} chaves: ${pattern}*`);
       }
     } catch (error) {

@@ -49,9 +49,9 @@ export class ImportService {
           decimalSeparator: dto.decimalSeparator,
           dateFormat: dto.dateFormat as CsvDateFormat | undefined,
           hasHeader: dto.hasHeader,
-          dateColumn: dto.dateColumn!,
-          amountColumn: dto.amountColumn!,
-          descriptionColumn: dto.descriptionColumn!,
+          dateColumn: dto.dateColumn,
+          amountColumn: dto.amountColumn,
+          descriptionColumn: dto.descriptionColumn,
           typeColumn: dto.typeColumn,
         });
       }
@@ -91,7 +91,9 @@ export class ImportService {
     });
     if (!account) throw new NotFoundException('Conta não encontrada');
     if (account.userId !== userId) {
-      throw new ForbiddenException('Você não tem permissão para usar esta conta');
+      throw new ForbiddenException(
+        'Você não tem permissão para usar esta conta',
+      );
     }
 
     // Janela de datas do lote, para buscar possíveis duplicatas existentes.
@@ -133,7 +135,11 @@ export class ImportService {
     }
 
     if (toCreate.length === 0) {
-      return { imported: 0, skipped, message: 'Nenhuma transação nova para importar.' };
+      return {
+        imported: 0,
+        skipped,
+        message: 'Nenhuma transação nova para importar.',
+      };
     }
 
     await this.prisma.transaction.createMany({
@@ -151,7 +157,8 @@ export class ImportService {
 
     // Atualiza o saldo da conta uma única vez com o delta líquido.
     const netDelta = toCreate.reduce(
-      (sum, t) => sum + (t.type === TransactionType.INCOME ? t.amount : -t.amount),
+      (sum, t) =>
+        sum + (t.type === TransactionType.INCOME ? t.amount : -t.amount),
       0,
     );
     const previousBalance = Number(account.currentBalance);

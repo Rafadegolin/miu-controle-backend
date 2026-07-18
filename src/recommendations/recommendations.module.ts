@@ -9,9 +9,7 @@ import { OpportunityDetectorAnalyzer } from './analyzers/opportunity-detector.an
 import { RiskAlertAnalyzer } from './analyzers/risk-alert.analyzer';
 
 @Module({
-  imports: [
-    AiModule,
-  ],
+  imports: [AiModule],
   controllers: [RecommendationsController],
   providers: [
     RecommendationsService,

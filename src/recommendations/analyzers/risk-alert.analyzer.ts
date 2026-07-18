@@ -12,11 +12,13 @@ export class RiskAlertAnalyzer implements Analyzer {
 
     // 1. Verificar Reserva de Emergência
     const emergencyFund = await this.prisma.emergencyFund.findUnique({
-      where: { userId }
+      where: { userId },
     });
 
     if (!emergencyFund || Number(emergencyFund.monthsCovered) < 3) {
-      const currentMonths = emergencyFund ? Number(emergencyFund.monthsCovered) : 0;
+      const currentMonths = emergencyFund
+        ? Number(emergencyFund.monthsCovered)
+        : 0;
       results.push({
         type: RecommendationType.RISK_ALERT,
         title: 'Reserva de Emergência Baixa',
@@ -24,7 +26,7 @@ export class RiskAlertAnalyzer implements Analyzer {
         impact: 0, // Impacto é segurança, não lucro direto
         difficulty: 4,
         category: 'Segurança Financeira',
-        metadata: { action: 'SETUP_EMERGENCY_FUND' }
+        metadata: { action: 'SETUP_EMERGENCY_FUND' },
       });
     }
 
@@ -36,33 +38,33 @@ export class RiskAlertAnalyzer implements Analyzer {
       where: {
         userId,
         type: 'INCOME',
-        date: { gte: thirtyDaysAgo }
-      }
+        date: { gte: thirtyDaysAgo },
+      },
     });
 
     if (incomes.length > 0) {
-        const totalIncome = incomes.reduce((sum, t) => sum + Number(t.amount), 0);
-        // Agrupar por pagador (merchant/description)
-        const sources: Record<string, number> = {};
-        incomes.forEach(t => {
-            const source = t.merchant || t.description || 'Outros';
-            if (!sources[source]) sources[source] = 0;
-            sources[source] += Number(t.amount);
-        });
+      const totalIncome = incomes.reduce((sum, t) => sum + Number(t.amount), 0);
+      // Agrupar por pagador (merchant/description)
+      const sources: Record<string, number> = {};
+      incomes.forEach((t) => {
+        const source = t.merchant || t.description || 'Outros';
+        if (!sources[source]) sources[source] = 0;
+        sources[source] += Number(t.amount);
+      });
 
-        for (const [source, amount] of Object.entries(sources)) {
-            if ((amount / totalIncome) > 0.9) {
-                results.push({
-                    type: RecommendationType.RISK_ALERT,
-                    title: 'Dependência de Fonte Única',
-                    description: `90% da sua renda vem de "${source}". Considere diversificar suas fontes de renda para reduzir riscos.`,
-                    impact: 0,
-                    difficulty: 5,
-                    category: 'Carreira',
-                });
-                break; // Apenas um alerta desse tipo
-            }
+      for (const [source, amount] of Object.entries(sources)) {
+        if (amount / totalIncome > 0.9) {
+          results.push({
+            type: RecommendationType.RISK_ALERT,
+            title: 'Dependência de Fonte Única',
+            description: `90% da sua renda vem de "${source}". Considere diversificar suas fontes de renda para reduzir riscos.`,
+            impact: 0,
+            difficulty: 5,
+            category: 'Carreira',
+          });
+          break; // Apenas um alerta desse tipo
         }
+      }
     }
 
     return results;

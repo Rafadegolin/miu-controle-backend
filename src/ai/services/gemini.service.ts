@@ -49,7 +49,7 @@ export class GeminiService {
     };
   }> {
     const maxRetries = 3;
-    let baseDelay = 2000; // 2 seconds
+    const baseDelay = 2000; // 2 seconds
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {

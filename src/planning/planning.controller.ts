@@ -21,9 +21,9 @@ export class PlanningController {
   @Post('goal/:goalId/save')
   @ApiOperation({ summary: 'Salvar plano aprovado' })
   savePlan(
-      @Param('goalId') goalId: string,
-      @CurrentUser() user,
-      @Body() planData: SavePlanDto,
+    @Param('goalId') goalId: string,
+    @CurrentUser() user,
+    @Body() planData: SavePlanDto,
   ) {
     return this.planningService.savePlan(user.id, goalId, planData);
   }

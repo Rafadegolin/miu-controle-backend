@@ -11,10 +11,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 🔒 Helmet - Headers de segurança
-  app.use(helmet({
-    contentSecurityPolicy: false, // Permite Swagger funcionar
-    crossOriginEmbedderPolicy: false, // Compatibilidade com recursos externos
-  }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Permite Swagger funcionar
+      crossOriginEmbedderPolicy: false, // Compatibilidade com recursos externos
+    }),
+  );
 
   // 🔢 Prefixo global /api + versionamento por URI (/api/v1/...)
   // Não é preciso excluir o Better Auth: ele é montado como middleware Express
@@ -38,11 +40,15 @@ async function bootstrap() {
         'https://miucontrole.com.br',
         'https://www.miucontrole.com.br',
       ];
-      
+
       // Permite qualquer URL do Vercel (preview e production)
       const vercelPattern = /^https:\/\/.*\.vercel\.app$/;
-      
-      if (!origin || allowedOrigins.includes(origin) || vercelPattern.test(origin)) {
+
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        vercelPattern.test(origin)
+      ) {
         callback(null, true);
       } else {
         console.warn(`🚫 CORS bloqueado: ${origin}`);

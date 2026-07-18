@@ -57,7 +57,7 @@ describe('AiCategorizationService', () => {
   describe('categorizeTransaction - Basic Scenarios', () => {
     const mockTransaction = {
       description: 'Supermercado Extra',
-      amount: 150.50,
+      amount: 150.5,
       merchant: 'Extra',
       date: new Date('2025-12-31'),
     };
@@ -65,7 +65,10 @@ describe('AiCategorizationService', () => {
     it('should return null when AI is not configured', async () => {
       mockPrismaService.userAiConfig.findUnique.mockResolvedValue(null);
 
-      const result = await service.categorizeTransaction('user-1', mockTransaction);
+      const result = await service.categorizeTransaction(
+        'user-1',
+        mockTransaction,
+      );
 
       expect(result.categoryId).toBeNull();
       expect(result.confidence).toBe(0);
@@ -78,7 +81,10 @@ describe('AiCategorizationService', () => {
         openaiApiKeyEncrypted: 'encrypted',
       });
 
-      const result = await service.categorizeTransaction('user-1', mockTransaction);
+      const result = await service.categorizeTransaction(
+        'user-1',
+        mockTransaction,
+      );
 
       expect(result.categoryId).toBeNull();
       expect(result.confidence).toBe(0);
@@ -94,7 +100,10 @@ describe('AiCategorizationService', () => {
 
       mockAiUsageService.checkMonthlyLimit.mockResolvedValue(false);
 
-      const result = await service.categorizeTransaction('user-1', mockTransaction);
+      const result = await service.categorizeTransaction(
+        'user-1',
+        mockTransaction,
+      );
 
       expect(result.categoryId).toBeNull();
       expect(result.reasoning).toContain('tokens excedido'); // Fixed: check for "tokens excedido"
@@ -110,7 +119,10 @@ describe('AiCategorizationService', () => {
       mockAiUsageService.checkMonthlyLimit.mockResolvedValue(true); // Reset to true!
       mockPrismaService.category.findMany.mockResolvedValue([]);
 
-      const result = await service.categorizeTransaction('user-1', mockTransaction);
+      const result = await service.categorizeTransaction(
+        'user-1',
+        mockTransaction,
+      );
 
       expect(result.categoryId).toBeNull();
       expect(result.reasoning).toContain('cadastradas');

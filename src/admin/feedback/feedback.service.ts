@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFeedbackDto, FeedbackType } from './dto/create-feedback.dto';
-import { UpdateFeedbackStatusDto, FeedbackStatus } from './dto/update-feedback-status.dto';
+import {
+  UpdateFeedbackStatusDto,
+  FeedbackStatus,
+} from './dto/update-feedback-status.dto';
 
 @Injectable()
 export class FeedbackService {
@@ -22,7 +25,9 @@ export class FeedbackService {
     });
   }
 
-  async findAll(filters: { status?: FeedbackStatus; type?: FeedbackType } = {}) {
+  async findAll(
+    filters: { status?: FeedbackStatus; type?: FeedbackType } = {},
+  ) {
     return this.prisma.feedback.findMany({
       where: {
         status: filters.status ? (filters.status as any) : undefined,
@@ -35,7 +40,11 @@ export class FeedbackService {
     });
   }
 
-  async updateStatus(id: string, dto: UpdateFeedbackStatusDto, adminId: string) {
+  async updateStatus(
+    id: string,
+    dto: UpdateFeedbackStatusDto,
+    adminId: string,
+  ) {
     return this.prisma.feedback.update({
       where: { id },
       data: {
@@ -49,7 +58,7 @@ export class FeedbackService {
   async getMyFeedback(userId: string) {
     return this.prisma.feedback.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 }

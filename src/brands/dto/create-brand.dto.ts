@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsArray, IsUrl } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  IsUrl,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateBrandDto {
@@ -18,7 +24,10 @@ export class CreateBrandDto {
   @IsUrl()
   website?: string;
 
-  @ApiProperty({ example: ['netflix', 'nflx'], description: 'Padrões de detecção para transações' })
+  @ApiProperty({
+    example: ['netflix', 'nflx'],
+    description: 'Padrões de detecção para transações',
+  })
   @IsArray()
   @IsString({ each: true })
   matchPatterns: string[];

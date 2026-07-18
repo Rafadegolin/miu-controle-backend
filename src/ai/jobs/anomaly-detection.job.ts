@@ -25,18 +25,23 @@ export class AnomalyDetectionJob {
         select: { userId: true },
       });
 
-      this.logger.log(`Processing ${users.length} users for anomaly detection...`);
+      this.logger.log(
+        `Processing ${users.length} users for anomaly detection...`,
+      );
 
       let totalAnomalies = 0;
 
       for (const { userId } of users) {
         try {
-          const anomalies = await this.predictiveService.detectDailyAnomalies(userId);
-          
+          const anomalies =
+            await this.predictiveService.detectDailyAnomalies(userId);
+
           if (anomalies && anomalies.length > 0) {
             totalAnomalies += anomalies.length;
-            this.logger.log(`User ${userId}: Detected ${anomalies.length} anomalies.`);
-            
+            this.logger.log(
+              `User ${userId}: Detected ${anomalies.length} anomalies.`,
+            );
+
             // Notify user about first major anomaly
             // await this.notificationService.sendAnomalyAlert(userId, anomalies[0]);
           }
@@ -45,10 +50,13 @@ export class AnomalyDetectionJob {
         }
       }
 
-      this.logger.log(`Finished anomaly detection. Total found: ${totalAnomalies}`);
-
+      this.logger.log(
+        `Finished anomaly detection. Total found: ${totalAnomalies}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to run anomaly detection job: ${error.message}`);
+      this.logger.error(
+        `Failed to run anomaly detection job: ${error.message}`,
+      );
     }
   }
 }

@@ -14,7 +14,10 @@ import { ParsedTransactionDto } from './parsed-transaction.dto';
  * (possivelmente editadas/filtradas) para persistência em lote.
  */
 export class ConfirmImportDto {
-  @ApiProperty({ example: 'uuid-da-conta', description: 'Conta de destino dos lançamentos' })
+  @ApiProperty({
+    example: 'uuid-da-conta',
+    description: 'Conta de destino dos lançamentos',
+  })
   @IsNotEmpty()
   @IsString()
   accountId: string;

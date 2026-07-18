@@ -51,7 +51,7 @@ describe('AiUsageService', () => {
         'CATEGORIZATION',
         { prompt_tokens: 500, completion_tokens: 100, total_tokens: 600 },
         'gpt-4o-mini',
-        'transaction-1'
+        'transaction-1',
       );
 
       expect(mockPrismaService.aiUsageMetric.create).toHaveBeenCalled();
@@ -59,15 +59,21 @@ describe('AiUsageService', () => {
 
     it('should handle tracking failure gracefully', async () => {
       mockPrismaService.aiUsageMetric.create.mockRejectedValue(
-        new Error('Database error')
+        new Error('Database error'),
       );
 
       await expect(
-        service.trackUsage('user-1', 'CATEGORIZATION', {
-          prompt_tokens: 100,
-          completion_tokens: 50,
-          total_tokens: 150,
-        }, 'gpt-4o-mini')).resolves.not.toThrow();
+        service.trackUsage(
+          'user-1',
+          'CATEGORIZATION',
+          {
+            prompt_tokens: 100,
+            completion_tokens: 50,
+            total_tokens: 150,
+          },
+          'gpt-4o-mini',
+        ),
+      ).resolves.not.toThrow();
     });
   });
 
@@ -89,7 +95,7 @@ describe('AiUsageService', () => {
         'user-1',
         'CATEGORIZATION',
         'gpt-4o-mini',
-        'API key invalid'
+        'API key invalid',
       );
 
       expect(mockPrismaService.aiUsageMetric.create).toHaveBeenCalled();

@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * Serviço para coletar métricas da aplicação
- * 
+ *
  * Coleta:
  * - Total de usuários
  * - Total de transações
@@ -52,9 +52,11 @@ export class MetricsService {
       }),
     ]);
 
-    const avgLatency = this.requestTimes.length > 0
-      ? this.requestTimes.reduce((a, b) => a + b, 0) / this.requestTimes.length
-      : 0;
+    const avgLatency =
+      this.requestTimes.length > 0
+        ? this.requestTimes.reduce((a, b) => a + b, 0) /
+          this.requestTimes.length
+        : 0;
 
     return {
       application: {

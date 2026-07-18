@@ -8,8 +8,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 @Module({
   imports: [
     TerminusModule, // Terminus para health checks
-    HttpModule,     // Para HTTP health checks se necessário
-    PrismaModule,   // Para DB health check
+    HttpModule, // Para HTTP health checks se necessário
+    PrismaModule, // Para DB health check
   ],
   controllers: [HealthController],
   providers: [MetricsService],

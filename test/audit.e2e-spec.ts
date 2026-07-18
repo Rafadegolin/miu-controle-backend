@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, VersioningType, ValidationPipe } from '@nestjs/common';
+import {
+  INestApplication,
+  VersioningType,
+  ValidationPipe,
+} from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -19,7 +23,11 @@ describe('Audit (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
-    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1', prefix: 'v' });
+    app.enableVersioning({
+      type: VersioningType.URI,
+      defaultVersion: '1',
+      prefix: 'v',
+    });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -94,7 +102,9 @@ describe('Audit (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      expect(response.body.items.every((log) => log.action === AuditAction.CREATE)).toBe(true);
+      expect(
+        response.body.items.every((log) => log.action === AuditAction.CREATE),
+      ).toBe(true);
     });
 
     it('deve filtrar por entidade', async () => {
@@ -105,7 +115,9 @@ describe('Audit (e2e)', () => {
         .expect(200);
 
       expect(
-        response.body.items.every((log) => log.entity === AuditEntity.TRANSACTION),
+        response.body.items.every(
+          (log) => log.entity === AuditEntity.TRANSACTION,
+        ),
       ).toBe(true);
     });
 
