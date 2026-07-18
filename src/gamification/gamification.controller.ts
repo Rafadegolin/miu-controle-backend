@@ -1,6 +1,15 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { GamificationService } from './gamification.service';
 import { MissionsService } from './missions.service';
+import { AchievementsService } from '../health-score/achievements.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -15,6 +24,7 @@ export class GamificationController {
   constructor(
     private readonly gamificationService: GamificationService,
     private readonly missionsService: MissionsService,
+    private readonly achievementsService: AchievementsService,
   ) {}
 
   @Get('/profile')
@@ -29,6 +39,14 @@ export class GamificationController {
     return this.missionsService.getActiveMissions(req.user.id);
   }
 
+  @Get('/achievements')
+  @ApiOperation({
+    summary: 'Listar conquistas do usuário (desbloqueadas e bloqueadas)',
+  })
+  async getAchievements(@Request() req) {
+    return this.achievementsService.getUserAchievements(req.user.id);
+  }
+
   // --- ADMIN ROUTES ---
 
   @Post('admin/missions')
@@ -36,7 +54,7 @@ export class GamificationController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Criar nova template de missão (Admin)' })
   createMission(@Body() dto: CreateMissionDto) {
-      return this.missionsService.create(dto);
+    return this.missionsService.create(dto);
   }
 
   @Get('admin/missions/templates')
@@ -44,6 +62,6 @@ export class GamificationController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Listar templates de missões (Admin)' })
   listTemplates() {
-      return this.missionsService.findAllTemplates();
+    return this.missionsService.findAllTemplates();
   }
 }

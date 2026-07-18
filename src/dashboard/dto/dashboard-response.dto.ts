@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { BudgetStatus } from '../../common/enums/budget-status.enum';
 
 // ==================== ACCOUNT SUMMARY ====================
 export class AccountSummaryItemDto {
@@ -151,11 +152,12 @@ export class BudgetItemDto {
   percentage: number;
 
   @ApiProperty({
-    example: 'ok',
-    enum: ['ok', 'warning', 'exceeded'],
-    description: 'ok: < 80%, warning: 80-100%, exceeded: > 100%',
+    example: 'OK',
+    enum: BudgetStatus,
+    description:
+      'OK: dentro do orçamento; WARNING: atingiu o alertPercentage do orçamento; EXCEEDED: estourou (>= 100%)',
   })
-  status: string;
+  status: BudgetStatus;
 
   @ApiProperty({ example: '#94A3B8' })
   categoryColor: string;

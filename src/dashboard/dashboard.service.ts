@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  BudgetStatus,
+  computeBudgetStatus,
+} from '../common/enums/budget-status.enum';
+import {
   DashboardResponseDto,
   AccountsSummaryDto,
   CurrentMonthSummaryDto,
@@ -316,9 +320,7 @@ export class DashboardService {
         const percentage =
           budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
 
-        let status: 'ok' | 'warning' | 'exceeded' = 'ok';
-        if (percentage >= 100) status = 'exceeded';
-        else if (percentage >= 80) status = 'warning';
+        const status = computeBudgetStatus(percentage, budget.alertPercentage);
 
         return {
           id: budget.id,
@@ -333,8 +335,12 @@ export class DashboardService {
       }),
     );
 
-    const overBudget = budgetsWithSpent.filter((b) => b.status === 'exceeded');
-    const nearLimit = budgetsWithSpent.filter((b) => b.status === 'warning');
+    const overBudget = budgetsWithSpent.filter(
+      (b) => b.status === BudgetStatus.EXCEEDED,
+    );
+    const nearLimit = budgetsWithSpent.filter(
+      (b) => b.status === BudgetStatus.WARNING,
+    );
 
     return {
       items: budgetsWithSpent,
@@ -796,8 +802,8 @@ export class DashboardService {
     currentMonthTransactions.forEach((t) => {
       if (!t.category) return;
 
-      const existing = categoryMap.get(t.categoryId!) || {
-        id: t.categoryId!,
+      const existing = categoryMap.get(t.categoryId) || {
+        id: t.categoryId,
         name: t.category.name,
         currentAmount: 0,
         lastMonthAmount: 0,
@@ -806,14 +812,14 @@ export class DashboardService {
       };
 
       existing.currentAmount += Number(t.amount);
-      categoryMap.set(t.categoryId!, existing);
+      categoryMap.set(t.categoryId, existing);
     });
 
     lastMonthTransactions.forEach((t) => {
       if (!t.category) return;
 
-      const existing = categoryMap.get(t.categoryId!) || {
-        id: t.categoryId!,
+      const existing = categoryMap.get(t.categoryId) || {
+        id: t.categoryId,
         name: t.category.name,
         currentAmount: 0,
         lastMonthAmount: 0,
@@ -822,7 +828,7 @@ export class DashboardService {
       };
 
       existing.lastMonthAmount += Number(t.amount);
-      categoryMap.set(t.categoryId!, existing);
+      categoryMap.set(t.categoryId, existing);
     });
 
     const totalExpenses = Array.from(categoryMap.values()).reduce(

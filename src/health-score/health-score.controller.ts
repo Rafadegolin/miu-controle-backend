@@ -2,9 +2,16 @@ import { Controller, Get, Post, UseGuards, Request } from '@nestjs/common';
 import { HealthScoreService } from './health-score.service';
 import { AchievementsService } from './achievements.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiOkResponse,
+} from '@nestjs/swagger';
+import { HealthScoreResponseDto } from './dto/health-score-response.dto';
 
 @ApiTags('Health Score')
+@ApiBearerAuth()
 @Controller('health-score')
 @UseGuards(JwtAuthGuard)
 export class HealthScoreController {
@@ -15,6 +22,7 @@ export class HealthScoreController {
 
   @Get()
   @ApiOperation({ summary: 'Get current user health score' })
+  @ApiOkResponse({ type: HealthScoreResponseDto })
   async getHealthScore(@Request() req) {
     return this.healthService.getHealthScore(req.user.id);
   }

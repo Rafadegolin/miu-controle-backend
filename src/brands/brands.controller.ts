@@ -1,21 +1,43 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+  UseGuards,
+} from '@nestjs/common';
 import { BrandsService } from './brands.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from '../upload/upload.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 
 @ApiTags('Brands')
+@ApiBearerAuth()
 @Controller('brands')
-@UseGuards(RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class BrandsController {
   constructor(
     private readonly brandsService: BrandsService,
-    private readonly uploadService: UploadService
+    private readonly uploadService: UploadService,
   ) {}
 
   @Post()
@@ -79,12 +101,18 @@ export class BrandsController {
     )
     file: Express.Multer.File,
   ) {
-    const url = await this.uploadService.uploadFile(file, 'logos', 'brand-logos');
+    const url = await this.uploadService.uploadFile(
+      file,
+      'logos',
+      'brand-logos',
+    );
     return this.brandsService.updateLogo(id, url);
   }
 
   @Post('check-pattern')
-  @ApiOperation({ summary: 'Testar se um padrão de texto detecta uma descrição' })
+  @ApiOperation({
+    summary: 'Testar se um padrão de texto detecta uma descrição',
+  })
   @Roles(Role.ADMIN)
   checkPattern(@Body() body: { pattern: string; text: string }) {
     const { pattern, text } = body;

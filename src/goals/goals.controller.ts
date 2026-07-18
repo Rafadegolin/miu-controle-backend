@@ -21,9 +21,14 @@ import {
   ApiBearerAuth,
   ApiQuery,
   ApiConsumes,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { GoalsService } from './goals.service';
+import {
+  GoalResponseDto,
+  GoalDetailResponseDto,
+} from './dto/goal-response.dto';
 import { CreateGoalDto } from './dto/create-goal.dto';
 import { UpdateGoalDto } from './dto/update-goal.dto';
 import { ContributeGoalDto } from './dto/contribute-goal.dto';
@@ -53,6 +58,7 @@ export class GoalsController {
   @Get()
   @ApiOperation({ summary: 'Listar todos os objetivos' })
   @ApiQuery({ name: 'status', enum: GoalStatus, required: false })
+  @ApiOkResponse({ type: GoalResponseDto, isArray: true })
   findAll(@CurrentUser() user, @Query('status') status?: GoalStatus) {
     return this.goalsService.findAll(user.id, status);
   }
@@ -66,11 +72,12 @@ export class GoalsController {
   @Get('hierarchy')
   @ApiOperation({ summary: 'Listar hierarquia de objetivos (Árvore)' })
   getHierarchy(@CurrentUser() user) {
-      return this.goalsService.getHierarchy(user.id);
+    return this.goalsService.getHierarchy(user.id);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Buscar objetivo por ID' })
+  @ApiOkResponse({ type: GoalDetailResponseDto })
   findOne(@Param('id') id: string, @CurrentUser() user) {
     return this.goalsService.findOne(id, user.id);
   }

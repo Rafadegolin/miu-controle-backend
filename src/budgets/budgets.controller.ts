@@ -14,10 +14,15 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 import { BudgetsService } from './budgets.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
+import {
+  BudgetResponseDto,
+  BudgetDetailResponseDto,
+} from './dto/budget-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BudgetPeriod } from '@prisma/client';
@@ -38,6 +43,7 @@ export class BudgetsController {
   @Get()
   @ApiOperation({ summary: 'Listar todos os orçamentos' })
   @ApiQuery({ name: 'period', enum: BudgetPeriod, required: false })
+  @ApiOkResponse({ type: BudgetResponseDto, isArray: true })
   findAll(@CurrentUser() user, @Query('period') period?: BudgetPeriod) {
     return this.budgetsService.findAll(user.id, period);
   }
@@ -51,6 +57,7 @@ export class BudgetsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Buscar orçamento por ID' })
+  @ApiOkResponse({ type: BudgetDetailResponseDto })
   findOne(@Param('id') id: string, @CurrentUser() user) {
     return this.budgetsService.findOne(id, user.id);
   }
