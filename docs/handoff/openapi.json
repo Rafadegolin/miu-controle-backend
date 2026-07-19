@@ -693,7 +693,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionListResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -797,7 +804,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionItemDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -942,7 +956,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptAnalysisResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1803,6 +1824,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Criar nova marca",
         "tags": [
           "Brands"
@@ -1816,6 +1842,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Listar todas as marcas",
         "tags": [
           "Brands"
@@ -1840,6 +1871,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Buscar marca por ID",
         "tags": [
           "Brands"
@@ -1872,6 +1908,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Atualizar marca",
         "tags": [
           "Brands"
@@ -1894,6 +1935,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Remover marca",
         "tags": [
           "Brands"
@@ -1934,6 +1980,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Upload de logo da marca",
         "tags": [
           "Brands"
@@ -1949,6 +2000,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Testar se um padrão de texto detecta uma descrição",
         "tags": [
           "Brands"
@@ -2205,7 +2261,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BudgetResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2264,7 +2330,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetDetailResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2390,7 +2463,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GoalResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2459,7 +2542,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoalDetailResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4999,11 +5089,24 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashFlowProjectionResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Projeção de fluxo de caixa",
         "tags": [
-          "Projections"
+          "Projeções"
         ]
       }
     },
@@ -5025,8 +5128,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "Projections"
+          "Projeções"
         ]
       }
     },
@@ -5468,9 +5576,21 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthScoreResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get current user health score",
         "tags": [
           "Health Score"
@@ -5486,6 +5606,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get user achievements",
         "tags": [
           "Health Score"
@@ -5501,6 +5626,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Force refresh of AI insights",
         "tags": [
           "Health Score"
@@ -5532,6 +5662,21 @@
           }
         },
         "summary": "Get active missions",
+        "tags": [
+          "Gamification"
+        ]
+      }
+    },
+    "/api/v1/gamification/achievements": {
+      "get": {
+        "operationId": "GamificationController_getAchievements_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Listar conquistas do usuário (desbloqueadas e bloqueadas)",
         "tags": [
           "Gamification"
         ]
@@ -6787,6 +6932,234 @@
           "description"
         ]
       },
+      "TransactionBrandDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-brand"
+          },
+          "name": {
+            "type": "string",
+            "example": "Netflix"
+          },
+          "logoUrl": {
+            "type": "string",
+            "example": "https://cdn.../netflix.png",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string",
+            "example": "netflix"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "logoUrl",
+          "slug"
+        ]
+      },
+      "TransactionCategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-category"
+          },
+          "name": {
+            "type": "string",
+            "example": "Alimentação"
+          },
+          "color": {
+            "type": "string",
+            "example": "#F59E0B"
+          },
+          "icon": {
+            "type": "string",
+            "example": "🍔",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "INCOME",
+              "EXPENSE"
+            ],
+            "example": "EXPENSE"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "color",
+          "icon",
+          "type"
+        ]
+      },
+      "TransactionAccountDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-account"
+          },
+          "name": {
+            "type": "string",
+            "example": "Conta Corrente"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CHECKING",
+              "SAVINGS",
+              "CREDIT_CARD",
+              "INVESTMENT"
+            ],
+            "example": "CHECKING"
+          },
+          "color": {
+            "type": "string",
+            "example": "#3B82F6",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "color"
+        ]
+      },
+      "TransactionItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-transaction"
+          },
+          "amount": {
+            "type": "number",
+            "example": 89.9
+          },
+          "description": {
+            "type": "string",
+            "example": "Almoço",
+            "nullable": true
+          },
+          "merchant": {
+            "type": "string",
+            "example": "Restaurante X",
+            "nullable": true
+          },
+          "brand": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TransactionBrandDto"
+              }
+            ]
+          },
+          "date": {
+            "type": "string",
+            "example": "2026-02-25T00:00:00.000Z"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "INCOME",
+              "EXPENSE"
+            ],
+            "example": "EXPENSE"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "COMPLETED",
+              "CANCELLED"
+            ],
+            "example": "COMPLETED"
+          },
+          "tags": {
+            "example": [
+              "viagem",
+              "reembolsável"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "example": "Observação livre",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-02-25T12:34:56.000Z"
+          },
+          "category": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TransactionCategoryDto"
+              }
+            ]
+          },
+          "account": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TransactionAccountDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "description",
+          "merchant",
+          "brand",
+          "date",
+          "type",
+          "status",
+          "tags",
+          "notes",
+          "createdAt",
+          "category",
+          "account"
+        ]
+      },
+      "TransactionListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionItemDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "example": "uuid-da-ultima-transacao",
+            "nullable": true,
+            "description": "Cursor para a próxima página (paginação por cursor)"
+          },
+          "hasMore": {
+            "type": "boolean",
+            "example": true,
+            "description": "Indica se há mais itens além desta página"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "UpdateTransactionDto": {
         "type": "object",
         "properties": {
@@ -6895,6 +7268,102 @@
         },
         "required": [
           "correctedCategoryId"
+        ]
+      },
+      "ReceiptPreviewDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "example": "Supermercado Extra",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "example": 89.5,
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "EXPENSE",
+              "INCOME"
+            ],
+            "example": "EXPENSE"
+          },
+          "date": {
+            "type": "string",
+            "example": "2026-02-25",
+            "nullable": true
+          },
+          "merchant": {
+            "type": "string",
+            "example": "Extra Hipermercado LTDA",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "example": "uuid-da-categoria-alimentacao",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string",
+            "example": "Alimentação",
+            "nullable": true
+          },
+          "confidence": {
+            "type": "number",
+            "example": 0.94,
+            "description": "Confiança da extração (0.0 a 1.0)"
+          },
+          "items": {
+            "description": "Itens extraídos do cupom",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptItemDto"
+            }
+          },
+          "rawText": {
+            "type": "string",
+            "example": "CUPOM FISCAL SAT ... EXTRA HIPERMERCADO ...",
+            "nullable": true,
+            "description": "Texto bruto extraído da imagem"
+          }
+        },
+        "required": [
+          "description",
+          "amount",
+          "type",
+          "date",
+          "merchant",
+          "categoryId",
+          "categoryName",
+          "confidence",
+          "items",
+          "rawText"
+        ]
+      },
+      "ReceiptAnalysisResponseDto": {
+        "type": "object",
+        "properties": {
+          "preview": {
+            "$ref": "#/components/schemas/ReceiptPreviewDto"
+          },
+          "aiUsed": {
+            "type": "string",
+            "example": "gemini-2.5-flash",
+            "description": "Modelo de IA utilizado"
+          },
+          "processingMs": {
+            "type": "number",
+            "example": 1842,
+            "description": "Tempo de processamento em milissegundos"
+          }
+        },
+        "required": [
+          "preview",
+          "aiUsed",
+          "processingMs"
         ]
       },
       "SaveAiConfigDto": {
@@ -7189,6 +7658,243 @@
           "startDate"
         ]
       },
+      "BudgetCategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-category"
+          },
+          "name": {
+            "type": "string",
+            "example": "Alimentação"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "INCOME",
+              "EXPENSE"
+            ],
+            "example": "EXPENSE"
+          },
+          "color": {
+            "type": "string",
+            "example": "#F59E0B"
+          },
+          "icon": {
+            "type": "string",
+            "example": "🍔",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "color",
+          "icon"
+        ]
+      },
+      "BudgetResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-budget"
+          },
+          "categoryId": {
+            "type": "string",
+            "example": "uuid-category"
+          },
+          "amount": {
+            "type": "number",
+            "example": 1000
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "MONTHLY",
+              "WEEKLY",
+              "YEARLY"
+            ],
+            "example": "MONTHLY"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-02-01T00:00:00.000Z"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2026-02-28T23:59:59.000Z",
+            "nullable": true
+          },
+          "alertPercentage": {
+            "type": "number",
+            "example": 80,
+            "description": "Percentual de gasto a partir do qual o status vira WARNING"
+          },
+          "category": {
+            "$ref": "#/components/schemas/BudgetCategoryDto"
+          },
+          "spent": {
+            "type": "number",
+            "example": 750,
+            "description": "Total gasto no período"
+          },
+          "remaining": {
+            "type": "number",
+            "example": 250,
+            "description": "Valor restante (amount - spent)"
+          },
+          "percentage": {
+            "type": "number",
+            "example": 75,
+            "description": "Percentual gasto (0-…)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK",
+              "WARNING",
+              "EXCEEDED"
+            ],
+            "example": "OK",
+            "description": "OK: dentro do orçamento; WARNING: atingiu o alertPercentage; EXCEEDED: estourou (>= 100%)"
+          }
+        },
+        "required": [
+          "id",
+          "categoryId",
+          "amount",
+          "period",
+          "startDate",
+          "endDate",
+          "alertPercentage",
+          "category",
+          "spent",
+          "remaining",
+          "percentage",
+          "status"
+        ]
+      },
+      "BudgetTransactionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-transaction"
+          },
+          "amount": {
+            "type": "number",
+            "example": 89.9
+          },
+          "description": {
+            "type": "string",
+            "example": "Almoço",
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "example": "2026-02-25T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "description",
+          "date"
+        ]
+      },
+      "BudgetDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-budget"
+          },
+          "categoryId": {
+            "type": "string",
+            "example": "uuid-category"
+          },
+          "amount": {
+            "type": "number",
+            "example": 1000
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "MONTHLY",
+              "WEEKLY",
+              "YEARLY"
+            ],
+            "example": "MONTHLY"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-02-01T00:00:00.000Z"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2026-02-28T23:59:59.000Z",
+            "nullable": true
+          },
+          "alertPercentage": {
+            "type": "number",
+            "example": 80,
+            "description": "Percentual de gasto a partir do qual o status vira WARNING"
+          },
+          "category": {
+            "$ref": "#/components/schemas/BudgetCategoryDto"
+          },
+          "spent": {
+            "type": "number",
+            "example": 750,
+            "description": "Total gasto no período"
+          },
+          "remaining": {
+            "type": "number",
+            "example": 250,
+            "description": "Valor restante (amount - spent)"
+          },
+          "percentage": {
+            "type": "number",
+            "example": 75,
+            "description": "Percentual gasto (0-…)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK",
+              "WARNING",
+              "EXCEEDED"
+            ],
+            "example": "OK",
+            "description": "OK: dentro do orçamento; WARNING: atingiu o alertPercentage; EXCEEDED: estourou (>= 100%)"
+          },
+          "transactions": {
+            "description": "Últimas transações da categoria no período (até 20)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetTransactionDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "categoryId",
+          "amount",
+          "period",
+          "startDate",
+          "endDate",
+          "alertPercentage",
+          "category",
+          "spent",
+          "remaining",
+          "percentage",
+          "status",
+          "transactions"
+        ]
+      },
       "UpdateBudgetDto": {
         "type": "object",
         "properties": {
@@ -7270,6 +7976,347 @@
         "required": [
           "name",
           "targetAmount"
+        ]
+      },
+      "GoalCountDto": {
+        "type": "object",
+        "properties": {
+          "contributions": {
+            "type": "number",
+            "example": 3,
+            "description": "Número de contribuições"
+          }
+        },
+        "required": [
+          "contributions"
+        ]
+      },
+      "GoalResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-goal"
+          },
+          "name": {
+            "type": "string",
+            "example": "Viagem para a Europa"
+          },
+          "description": {
+            "type": "string",
+            "example": "Reserva para férias de 2027",
+            "nullable": true
+          },
+          "targetAmount": {
+            "type": "number",
+            "example": 15000
+          },
+          "currentAmount": {
+            "type": "number",
+            "example": 4200
+          },
+          "targetDate": {
+            "type": "string",
+            "example": "2027-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "example": "#10B981"
+          },
+          "icon": {
+            "type": "string",
+            "example": "✈️",
+            "nullable": true
+          },
+          "priority": {
+            "type": "number",
+            "example": 3,
+            "description": "1 (maior) a 5 (menor)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "COMPLETED",
+              "CANCELLED"
+            ],
+            "example": "ACTIVE"
+          },
+          "parentId": {
+            "type": "string",
+            "example": null,
+            "nullable": true,
+            "description": "ID do objetivo pai (hierarquia)"
+          },
+          "imageUrl": {
+            "type": "string",
+            "example": "https://cdn.../goal.png",
+            "nullable": true
+          },
+          "purchaseLinks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "nullable": true,
+            "description": "Links de compra associados ao objetivo (array JSON)"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-10T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-02-20T00:00:00.000Z"
+          },
+          "completedAt": {
+            "type": "string",
+            "example": null,
+            "nullable": true
+          },
+          "percentage": {
+            "type": "number",
+            "example": 28,
+            "description": "Percentual atingido (currentAmount/targetAmount)"
+          },
+          "remaining": {
+            "type": "number",
+            "example": 10800,
+            "description": "Valor restante (targetAmount - currentAmount)"
+          },
+          "isOverdue": {
+            "type": "boolean",
+            "example": false,
+            "description": "true se targetDate já passou"
+          },
+          "daysRemaining": {
+            "type": "number",
+            "example": 320,
+            "nullable": true,
+            "description": "Dias restantes até targetDate"
+          },
+          "_count": {
+            "$ref": "#/components/schemas/GoalCountDto"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "targetAmount",
+          "currentAmount",
+          "targetDate",
+          "color",
+          "icon",
+          "priority",
+          "status",
+          "parentId",
+          "imageUrl",
+          "purchaseLinks",
+          "createdAt",
+          "updatedAt",
+          "completedAt",
+          "percentage",
+          "remaining",
+          "isOverdue",
+          "daysRemaining",
+          "_count"
+        ]
+      },
+      "GoalContributionTransactionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-transaction"
+          },
+          "description": {
+            "type": "string",
+            "example": "Aporte mensal",
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "example": "2026-02-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "date"
+        ]
+      },
+      "GoalContributionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-contribution"
+          },
+          "amount": {
+            "type": "number",
+            "example": 500
+          },
+          "date": {
+            "type": "string",
+            "example": "2026-02-01T00:00:00.000Z"
+          },
+          "transaction": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GoalContributionTransactionDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "date",
+          "transaction"
+        ]
+      },
+      "GoalDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-goal"
+          },
+          "name": {
+            "type": "string",
+            "example": "Viagem para a Europa"
+          },
+          "description": {
+            "type": "string",
+            "example": "Reserva para férias de 2027",
+            "nullable": true
+          },
+          "targetAmount": {
+            "type": "number",
+            "example": 15000
+          },
+          "currentAmount": {
+            "type": "number",
+            "example": 4200
+          },
+          "targetDate": {
+            "type": "string",
+            "example": "2027-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "example": "#10B981"
+          },
+          "icon": {
+            "type": "string",
+            "example": "✈️",
+            "nullable": true
+          },
+          "priority": {
+            "type": "number",
+            "example": 3,
+            "description": "1 (maior) a 5 (menor)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "COMPLETED",
+              "CANCELLED"
+            ],
+            "example": "ACTIVE"
+          },
+          "parentId": {
+            "type": "string",
+            "example": null,
+            "nullable": true,
+            "description": "ID do objetivo pai (hierarquia)"
+          },
+          "imageUrl": {
+            "type": "string",
+            "example": "https://cdn.../goal.png",
+            "nullable": true
+          },
+          "purchaseLinks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "nullable": true,
+            "description": "Links de compra associados ao objetivo (array JSON)"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-10T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-02-20T00:00:00.000Z"
+          },
+          "completedAt": {
+            "type": "string",
+            "example": null,
+            "nullable": true
+          },
+          "percentage": {
+            "type": "number",
+            "example": 28,
+            "description": "Percentual atingido (currentAmount/targetAmount)"
+          },
+          "remaining": {
+            "type": "number",
+            "example": 10800,
+            "description": "Valor restante (targetAmount - currentAmount)"
+          },
+          "isOverdue": {
+            "type": "boolean",
+            "example": false,
+            "description": "true se targetDate já passou"
+          },
+          "daysRemaining": {
+            "type": "number",
+            "example": 320,
+            "nullable": true,
+            "description": "Dias restantes até targetDate"
+          },
+          "_count": {
+            "$ref": "#/components/schemas/GoalCountDto"
+          },
+          "contributions": {
+            "description": "Contribuições do objetivo (mais recentes primeiro)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoalContributionDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "targetAmount",
+          "currentAmount",
+          "targetDate",
+          "color",
+          "icon",
+          "priority",
+          "status",
+          "parentId",
+          "imageUrl",
+          "purchaseLinks",
+          "createdAt",
+          "updatedAt",
+          "completedAt",
+          "percentage",
+          "remaining",
+          "isOverdue",
+          "daysRemaining",
+          "_count",
+          "contributions"
         ]
       },
       "ContributeGoalDto": {
@@ -8065,13 +9112,13 @@
           },
           "status": {
             "type": "string",
-            "example": "ok",
+            "example": "OK",
             "enum": [
-              "ok",
-              "warning",
-              "exceeded"
+              "OK",
+              "WARNING",
+              "EXCEEDED"
             ],
-            "description": "ok: < 80%, warning: 80-100%, exceeded: > 100%"
+            "description": "OK: dentro do orçamento; WARNING: atingiu o alertPercentage do orçamento; EXCEEDED: estourou (>= 100%)"
           },
           "categoryColor": {
             "type": "string",
@@ -8572,6 +9619,10 @@
           "status"
         ]
       },
+      "CashFlowProjectionResponseDto": {
+        "type": "object",
+        "properties": {}
+      },
       "SavePlanDto": {
         "type": "object",
         "properties": {
@@ -8688,6 +9739,89 @@
         "required": [
           "amount",
           "categoryId"
+        ]
+      },
+      "HealthScoreResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid-health-score"
+          },
+          "userId": {
+            "type": "string",
+            "example": "uuid-user"
+          },
+          "totalScore": {
+            "type": "number",
+            "example": 720,
+            "description": "Pontuação total (0-1000)"
+          },
+          "consistencyScore": {
+            "type": "number",
+            "example": 210,
+            "description": "Consistência (0-300)"
+          },
+          "budgetScore": {
+            "type": "number",
+            "example": 180,
+            "description": "Orçamentos (0-250)"
+          },
+          "goalsScore": {
+            "type": "number",
+            "example": 140,
+            "description": "Metas (0-200)"
+          },
+          "emergencyScore": {
+            "type": "number",
+            "example": 110,
+            "description": "Reserva de emergência (0-150)"
+          },
+          "diversityScore": {
+            "type": "number",
+            "example": 80,
+            "description": "Diversificação (0-100)"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "ATTENTION",
+              "HEALTHY",
+              "GOOD",
+              "EXCELLENT"
+            ],
+            "example": "GOOD"
+          },
+          "aiInsights": {
+            "type": "string",
+            "example": "Você está indo bem! Considere aumentar sua reserva.",
+            "nullable": true,
+            "description": "Insights gerados por IA"
+          },
+          "lastAiAnalysisAt": {
+            "type": "string",
+            "example": "2026-02-20T10:00:00.000Z",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-02-25T08:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "totalScore",
+          "consistencyScore",
+          "budgetScore",
+          "goalsScore",
+          "emergencyScore",
+          "diversityScore",
+          "level",
+          "aiInsights",
+          "lastAiAnalysisAt",
+          "updatedAt"
         ]
       },
       "CreateMissionDto": {
