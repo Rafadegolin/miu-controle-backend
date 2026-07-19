@@ -11,13 +11,38 @@ export class EmailService {
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get('RESEND_API_KEY');
     this.fromEmail = this.configService.get('EMAIL_FROM');
+
+    // Degrada com log em vez de lançar no construtor (que derrubaria o boot).
+    // Sem chave, o serviço vira no-op — mesmo comportamento do EvolutionService.
+    if (!apiKey) {
+      this.logger.warn(
+        '⚠️ RESEND_API_KEY não configurada — envio de emails desabilitado (no-op).',
+      );
+      return;
+    }
+
     this.resend = new Resend(apiKey);
+  }
+
+  /**
+   * Indica se o Resend está configurado (chave presente).
+   */
+  private isConfigured(): boolean {
+    if (!this.resend) {
+      this.logger.warn(
+        'Envio de email ignorado: RESEND_API_KEY não configurada.',
+      );
+      return false;
+    }
+    return true;
   }
 
   /**
    * Envia email genérico
    */
   async sendEmail(to: string, subject: string, html: string) {
+    if (!this.isConfigured()) return null;
+
     try {
       const { data, error } = await this.resend.emails.send({
         from: this.fromEmail,
@@ -43,6 +68,8 @@ export class EmailService {
    * Envia email de recuperação de senha
    */
   async sendPasswordResetEmail(to: string, token: string, userName: string) {
+    if (!this.isConfigured()) return null;
+
     const frontendUrl = this.configService.get('FRONTEND_URL');
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
@@ -162,6 +189,8 @@ export class EmailService {
    * Envia email de confirmação após reset bem-sucedido
    */
   async sendPasswordChangedEmail(to: string, userName: string) {
+    if (!this.isConfigured()) return null;
+
     try {
       const { data, error } = await this.resend.emails.send({
         from: this.fromEmail,
@@ -198,6 +227,8 @@ export class EmailService {
    * Envia email de verificação
    */
   async sendEmailVerification(to: string, token: string, userName: string) {
+    if (!this.isConfigured()) return null;
+
     const frontendUrl = this.configService.get('FRONTEND_URL');
     const verifyUrl = `${frontendUrl}/verify-email?token=${token}`;
 
