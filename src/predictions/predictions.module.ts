@@ -11,10 +11,7 @@ import { PredictionsJob } from './predictions.job';
     ScheduleModule.forRoot(), // Ensure ScheduleModule is available (might be redundant if in AppModule but safe)
   ],
   controllers: [PredictionsController],
-  providers: [
-    PredictionEngineService,
-    PredictionsJob
-  ],
-  exports: [PredictionEngineService]
+  providers: [PredictionEngineService, PredictionsJob],
+  exports: [PredictionEngineService],
 })
 export class PredictionsModule {}

@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  Logger,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Socket } from 'socket.io';
@@ -19,11 +24,11 @@ export class WsJwtGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       const client: Socket = context.switchToWs().getClient();
-      
+
       // Extrai token do handshake (auth ou query)
-      const token = 
-        client.handshake.auth?.token || 
-        client.handshake.query?.token as string;
+      const token =
+        client.handshake.auth?.token ||
+        (client.handshake.query?.token as string);
 
       if (!token) {
         this.logger.warn('❌ WebSocket connection rejected: No token provided');
@@ -32,9 +37,11 @@ export class WsJwtGuard implements CanActivate {
 
       // Valida token JWT
       const payload = this.jwtService.verify(token);
-      
+
       if (!payload || !payload.sub) {
-        this.logger.warn('❌ WebSocket connection rejected: Invalid token payload');
+        this.logger.warn(
+          '❌ WebSocket connection rejected: Invalid token payload',
+        );
         return false;
       }
 
@@ -49,7 +56,9 @@ export class WsJwtGuard implements CanActivate {
       });
 
       if (!user) {
-        this.logger.warn(`❌ WebSocket connection rejected: User not found (${payload.sub})`);
+        this.logger.warn(
+          `❌ WebSocket connection rejected: User not found (${payload.sub})`,
+        );
         return false;
       }
 
@@ -59,7 +68,6 @@ export class WsJwtGuard implements CanActivate {
 
       this.logger.log(`✅ WebSocket authenticated: ${user.email} (${user.id})`);
       return true;
-
     } catch (error) {
       this.logger.error(`❌ WebSocket auth error: ${error.message}`);
       return false;

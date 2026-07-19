@@ -29,9 +29,9 @@ export class ExportController {
 
   @Get('csv')
   @Throttle({ long: { limit: 10, ttl: 3600000 } }) // 10 req/hora
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Exportar transações em CSV',
-    description: 'Limite: 10 exportações por hora'
+    description: 'Limite: 10 exportações por hora',
   })
   @ApiResponse({ status: 200, description: 'Arquivo CSV gerado' })
   async exportCSV(
@@ -50,9 +50,9 @@ export class ExportController {
 
   @Get('excel')
   @Throttle({ long: { limit: 10, ttl: 3600000 } }) // 10 req/hora
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Exportar transações em Excel',
-    description: 'Limite: 10 exportações por hora'
+    description: 'Limite: 10 exportações por hora',
   })
   @ApiResponse({ status: 200, description: 'Arquivo Excel gerado' })
   async exportExcel(
@@ -74,9 +74,9 @@ export class ExportController {
 
   @Get('pdf')
   @Throttle({ long: { limit: 10, ttl: 3600000 } }) // 10 req/hora
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Exportar transações em PDF',
-    description: 'Limite: 10 exportações por hora'
+    description: 'Limite: 10 exportações por hora',
   })
   @ApiResponse({ status: 200, description: 'Arquivo PDF gerado' })
   async exportPDF(

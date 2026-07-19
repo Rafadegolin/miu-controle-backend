@@ -11,39 +11,48 @@ export class PredictionsController {
   @Get('variable-expenses')
   async getVariableExpenses(
     @Req() req,
-    @Query('month') monthStr: string // YYYY-MM
+    @Query('month') monthStr: string, // YYYY-MM
   ) {
     const userId = req.user.id;
-    
+
     // 1. Detect variable categories
-    const variableCategoryIds = await this.predictionService.detectVariableCategories(userId);
-    
+    const variableCategoryIds =
+      await this.predictionService.detectVariableCategories(userId);
+
     // 2. Predict for each
     const targetDate = monthStr ? new Date(`${monthStr}-01`) : new Date();
-    
+
     const predictions = [];
-    
+
     for (const catId of variableCategoryIds) {
-      const pred = await this.predictionService.predictCategoryExpense(userId, catId, targetDate);
+      const pred = await this.predictionService.predictCategoryExpense(
+        userId,
+        catId,
+        targetDate,
+      );
       if (pred) predictions.push(pred);
     }
 
     return {
       month: monthStr,
-      predictions
+      predictions,
     };
   }
 
   @Get('category/:categoryId')
   async getCategoryPrediction(
     @Req() req,
-    @Param('categoryId') categoryId: string
+    @Param('categoryId') categoryId: string,
   ) {
     const userId = req.user.id;
     // Predict for next month by default
     const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 1);
-    
-    return this.predictionService.predictCategoryExpense(userId, categoryId, nextMonth);
+
+    return this.predictionService.predictCategoryExpense(
+      userId,
+      categoryId,
+      nextMonth,
+    );
   }
 }

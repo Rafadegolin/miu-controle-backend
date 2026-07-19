@@ -21,7 +21,7 @@ export class HealthScoreService {
 
   async getHealthScore(userId: string) {
     let score = await this.prisma.healthScore.findUnique({ where: { userId } });
-    
+
     if (!score) {
       await this.calculateUserScore(userId);
       score = await this.prisma.healthScore.findUnique({ where: { userId } });
@@ -34,7 +34,7 @@ export class HealthScoreService {
   async handleDailyScoreRecalculation() {
     this.logger.log('Starting daily health score recalculation...');
     const users = await this.prisma.user.findMany({ select: { id: true } });
-    
+
     for (const user of users) {
       try {
         await this.calculateUserScore(user.id);
@@ -53,7 +53,7 @@ export class HealthScoreService {
     const diversity = await this.calculateDiversityScore(userId);
 
     const totalScore = consistency + budgets + goals + emergency + diversity;
-    
+
     let level = 'CRITICAL'; // 0-300
     if (totalScore > 850) level = 'EXCELLENT';
     else if (totalScore > 700) level = 'GOOD';
@@ -80,7 +80,7 @@ export class HealthScoreService {
         emergencyScore: emergency,
         diversityScore: diversity,
         level,
-      }
+      },
     });
 
     // Check Achievements after score update
@@ -95,19 +95,21 @@ export class HealthScoreService {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const transactions = await this.prisma.transaction.findMany({
-      where: { 
-        userId, 
-        date: { gte: thirtyDaysAgo } 
+      where: {
+        userId,
+        date: { gte: thirtyDaysAgo },
       },
       select: { date: true },
-      orderBy: { date: 'asc' }
+      orderBy: { date: 'asc' },
     });
 
     if (transactions.length === 0) return 0;
 
-    const uniqueDays = new Set(transactions.map(t => t.date.toISOString().split('T')[0])).size;
+    const uniqueDays = new Set(
+      transactions.map((t) => t.date.toISOString().split('T')[0]),
+    ).size;
     const percentage = Math.min(uniqueDays / 30, 1);
-    
+
     // Simplification: Direct percentage mapping for now
     return Math.round(percentage * 300);
   }
@@ -118,7 +120,7 @@ export class HealthScoreService {
     currentMonth.setDate(1); // Start of month
 
     const budgets = await this.prisma.budget.findMany({
-      where: { userId, period: 'MONTHLY', startDate: { lte: new Date() } } // Simplified
+      where: { userId, period: 'MONTHLY', startDate: { lte: new Date() } }, // Simplified
       // Ideally check against 'active' budgets matching current month
     });
 
@@ -132,14 +134,17 @@ export class HealthScoreService {
 
   // [20% - 200pts] Progresso em Metas
   private async calculateGoalsScore(userId: string): Promise<number> {
-    const goals = await this.prisma.goal.findMany({ where: { userId, status: 'ACTIVE' } });
+    const goals = await this.prisma.goal.findMany({
+      where: { userId, status: 'ACTIVE' },
+    });
     if (goals.length === 0) return 0;
 
     const progressSum = goals.reduce((acc, goal) => {
-        const progress = goal.targetAmount.toNumber() > 0 
-           ? goal.currentAmount.toNumber() / goal.targetAmount.toNumber() 
-           : 0;
-        return acc + Math.min(progress, 1);
+      const progress =
+        goal.targetAmount.toNumber() > 0
+          ? goal.currentAmount.toNumber() / goal.targetAmount.toNumber()
+          : 0;
+      return acc + Math.min(progress, 1);
     }, 0);
 
     const avgProgress = progressSum / goals.length;
@@ -148,19 +153,21 @@ export class HealthScoreService {
 
   // [15% - 150pts] Reserva de Emergência
   private async calculateEmergencyScore(userId: string): Promise<number> {
-     // Check if User has EmergencyFund or a Goal tagged as such. 
-     // Using simplifying assumption: Look for a Goal named "Reserva de Emergência" or similar, 
-     // OR check the actual EmergencyFund model if implemented.
-     
-     // Based on schema, we have `emergencyFunds` relation on User.
-     const fund = await this.prisma.emergencyFund.findUnique({ where: { userId } });
-     if (!fund) return 0;
+    // Check if User has EmergencyFund or a Goal tagged as such.
+    // Using simplifying assumption: Look for a Goal named "Reserva de Emergência" or similar,
+    // OR check the actual EmergencyFund model if implemented.
 
-     const coverage = fund.monthsCovered.toNumber();
-     
-     if (coverage >= 6) return 150;
-     if (coverage >= 3) return 75;
-     return Math.round((coverage / 3) * 75);
+    // Based on schema, we have `emergencyFunds` relation on User.
+    const fund = await this.prisma.emergencyFund.findUnique({
+      where: { userId },
+    });
+    if (!fund) return 0;
+
+    const coverage = fund.monthsCovered.toNumber();
+
+    if (coverage >= 6) return 150;
+    if (coverage >= 3) return 75;
+    return Math.round((coverage / 3) * 75);
   }
 
   // [10% - 100pts] Diversificação de Receitas
@@ -170,8 +177,8 @@ export class HealthScoreService {
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
     const incomes = await this.prisma.transaction.findMany({
-        where: { userId, type: 'INCOME', date: { gte: ninetyDaysAgo } },
-        distinct: ['categoryId']
+      where: { userId, type: 'INCOME', date: { gte: ninetyDaysAgo } },
+      distinct: ['categoryId'],
     });
 
     const sources = incomes.length;
@@ -181,14 +188,19 @@ export class HealthScoreService {
   }
 
   async refreshAiInsights(userId: string) {
-    const score = await this.prisma.healthScore.findUnique({ where: { userId } });
+    const score = await this.prisma.healthScore.findUnique({
+      where: { userId },
+    });
     if (!score) return null;
 
     try {
-        const aiConfig = await this.aiKeyManagerService.getApiKey(userId, AiFeatureType.RECOMMENDATIONS); // Reuse KEY
-        if (!aiConfig) return { message: 'AI not configured' };
+      const aiConfig = await this.aiKeyManagerService.getApiKey(
+        userId,
+        AiFeatureType.RECOMMENDATIONS,
+      ); // Reuse KEY
+      if (!aiConfig) return { message: 'AI not configured' };
 
-        const prompt = `
+      const prompt = `
           Analise a saúde financeira deste usuário:
           - Score Total: ${score.totalScore}/1000 (${score.level})
           - Consistência: ${score.consistencyScore}/300
@@ -200,26 +212,29 @@ export class HealthScoreService {
           Gere um conselho curto, motivacional e direto (máximo 2 frases) focado no ponto mais crítico para ele melhorar sua nota. Use tom de coach financeiro.
         `;
 
-        let insight = '';
-        if (aiConfig.provider === 'GEMINI') {
-            insight = await this.geminiService.enhanceText(prompt, aiConfig.apiKey); // enhanceText acts as generateText here actually
-        } else {
-            insight = await this.openAiService.enhanceText(prompt, aiConfig.apiKey, aiConfig.model);
-        }
+      let insight = '';
+      if (aiConfig.provider === 'GEMINI') {
+        insight = await this.geminiService.enhanceText(prompt, aiConfig.apiKey); // enhanceText acts as generateText here actually
+      } else {
+        insight = await this.openAiService.enhanceText(
+          prompt,
+          aiConfig.apiKey,
+          aiConfig.model,
+        );
+      }
 
-        await this.prisma.healthScore.update({
-            where: { userId },
-            data: { 
-                aiInsights: insight,
-                lastAiAnalysisAt: new Date()
-            }
-        });
+      await this.prisma.healthScore.update({
+        where: { userId },
+        data: {
+          aiInsights: insight,
+          lastAiAnalysisAt: new Date(),
+        },
+      });
 
-        return { insight };
-
+      return { insight };
     } catch (e) {
-        this.logger.error('Failed to generate AI health insights', e);
-        return { error: 'Failed to generate insights' };
+      this.logger.error('Failed to generate AI health insights', e);
+      return { error: 'Failed to generate insights' };
     }
   }
 }

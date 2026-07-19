@@ -93,7 +93,10 @@ export class AuditController {
             entity: 'TRANSACTION',
             entityId: '789e4567-e89b-12d3-a456-426614174111',
             before: { amount: 100.0, description: 'Compra no supermercado' },
-            after: { amount: 150.0, description: 'Compra no supermercado (atualizado)' },
+            after: {
+              amount: 150.0,
+              description: 'Compra no supermercado (atualizado)',
+            },
             ipAddress: '192.168.1.1',
             userAgent: 'Mozilla/5.0...',
             createdAt: '2025-12-30T04:00:00.000Z',

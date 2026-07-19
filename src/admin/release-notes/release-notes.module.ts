@@ -4,6 +4,6 @@ import { ReleaseNotesController } from './release-notes.controller';
 
 @Module({
   providers: [ReleaseNotesService],
-  controllers: [ReleaseNotesController]
+  controllers: [ReleaseNotesController],
 })
 export class ReleaseNotesModule {}

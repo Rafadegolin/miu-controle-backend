@@ -9,7 +9,7 @@ export class ExpenseReducerAnalyzer implements Analyzer {
 
   async analyze(userId: string): Promise<AnalyzerResult[]> {
     const results: AnalyzerResult[] = [];
-    
+
     // 1. Identificar categorias > 30% do total de gastos nos últimos 30 dias
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -26,12 +26,13 @@ export class ExpenseReducerAnalyzer implements Analyzer {
     const totalExpense = expenses.reduce((sum, t) => sum + Number(t.amount), 0);
     if (totalExpense === 0) return [];
 
-    const categoryTotals: Record<string, { amount: number, name: string }> = {};
+    const categoryTotals: Record<string, { amount: number; name: string }> = {};
 
-    expenses.forEach(t => {
+    expenses.forEach((t) => {
       const catId = t.categoryId || 'uncategorized';
       const catName = t.category?.name || 'Sem Categoria';
-      if (!categoryTotals[catId]) categoryTotals[catId] = { amount: 0, name: catName };
+      if (!categoryTotals[catId])
+        categoryTotals[catId] = { amount: 0, name: catName };
       categoryTotals[catId].amount += Number(t.amount);
     });
 
@@ -42,7 +43,7 @@ export class ExpenseReducerAnalyzer implements Analyzer {
           type: RecommendationType.REDUCE_EXPENSE,
           title: `Gasto elevado em ${data.name}`,
           description: `Você gastou R$ ${data.amount.toFixed(2)} em ${data.name}, o que representa ${percentage.toFixed(0)}% do seu total. Tente reduzir 10% deste valor.`,
-          impact: data.amount * 0.10, // Sugere economia de 10%
+          impact: data.amount * 0.1, // Sugere economia de 10%
           difficulty: 3,
           category: data.name,
         });

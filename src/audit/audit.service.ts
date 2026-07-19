@@ -26,23 +26,25 @@ export class AuditService {
   async log(params: LogParams): Promise<void> {
     try {
       // Executar de forma assíncrona sem bloquear
-      Promise.resolve().then(async () => {
-        await this.prisma.auditLog.create({
-          data: {
-            userId: params.userId,
-            action: params.action,
-            entity: params.entity,
-            entityId: params.entityId,
-            before: params.before || null,
-            after: params.after || null,
-            ipAddress: params.ipAddress,
-            userAgent: params.userAgent,
-          },
+      Promise.resolve()
+        .then(async () => {
+          await this.prisma.auditLog.create({
+            data: {
+              userId: params.userId,
+              action: params.action,
+              entity: params.entity,
+              entityId: params.entityId,
+              before: params.before || null,
+              after: params.after || null,
+              ipAddress: params.ipAddress,
+              userAgent: params.userAgent,
+            },
+          });
+        })
+        .catch((error) => {
+          // Log de auditoria não deve quebrar a aplicação
+          console.error('❌ Erro ao criar log de auditoria:', error.message);
         });
-      }).catch((error) => {
-        // Log de auditoria não deve quebrar a aplicação
-        console.error('❌ Erro ao criar log de auditoria:', error.message);
-      });
     } catch (error) {
       // Capturar erros silenciosamente
       console.error('❌ Erro ao criar log de auditoria:', error.message);

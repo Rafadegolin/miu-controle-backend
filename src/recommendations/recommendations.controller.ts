@@ -1,4 +1,11 @@
-import { Controller, Get, Post, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { RecommendationsService } from './recommendations.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -7,7 +14,9 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 @Controller('recommendations')
 @UseGuards(JwtAuthGuard)
 export class RecommendationsController {
-  constructor(private readonly recommendationsService: RecommendationsService) {}
+  constructor(
+    private readonly recommendationsService: RecommendationsService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get active recommendations' })
@@ -18,7 +27,9 @@ export class RecommendationsController {
   @Post('generate')
   @ApiOperation({ summary: 'Force generate recommendations (Testing)' })
   async generate(@Request() req) {
-    await this.recommendationsService.generateRecommendationsForUser(req.user.id);
+    await this.recommendationsService.generateRecommendationsForUser(
+      req.user.id,
+    );
     return this.recommendationsService.findAll(req.user.id);
   }
 

@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 export interface SlowQuery {
@@ -20,7 +25,7 @@ export class PrismaService
 
   async onModuleInit() {
     await this.$connect();
-    
+
     // Middleware para logging de queries lentas
     this.$use(async (params, next) => {
       const before = Date.now();

@@ -9,6 +9,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
   imports: [PrismaModule, AnalysisModule, NotificationsModule],
   controllers: [EmergencyFundController],
   providers: [EmergencyFundService],
-  exports: [EmergencyFundService]
+  exports: [EmergencyFundService],
 })
 export class EmergencyFundModule {}

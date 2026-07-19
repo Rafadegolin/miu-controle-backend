@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, VersioningType, ValidationPipe } from '@nestjs/common';
+import {
+  INestApplication,
+  VersioningType,
+  ValidationPipe,
+} from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -19,7 +23,11 @@ describe('Budgets (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
-    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1', prefix: 'v' });
+    app.enableVersioning({
+      type: VersioningType.URI,
+      defaultVersion: '1',
+      prefix: 'v',
+    });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,

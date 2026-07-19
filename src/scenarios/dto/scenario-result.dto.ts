@@ -1,32 +1,32 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ActionRecommendation {
-    @ApiProperty()
-    type: 'CUT' | 'DELAY' | 'INSTALLMENT' | 'EARN';
-    
-    @ApiProperty()
-    message: string;
-    
-    @ApiProperty()
-    details?: any;
+  @ApiProperty()
+  type: 'CUT' | 'DELAY' | 'INSTALLMENT' | 'EARN';
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  details?: any;
 }
 
 export class ScenarioResultDto {
-    @ApiProperty()
-    isViable: boolean;
+  @ApiProperty()
+  isViable: boolean;
 
-    @ApiProperty()
-    currentBalance: number;
+  @ApiProperty()
+  currentBalance: number;
 
-    @ApiProperty({ type: [Number] })
-    projectedBalance12Months: number[];
+  @ApiProperty({ type: [Number] })
+  projectedBalance12Months: number[];
 
-    @ApiProperty()
-    lowestBalance: number;
-    
-    @ApiProperty({ type: [String] })
-    impactedGoals: string[];
+  @ApiProperty()
+  lowestBalance: number;
 
-    @ApiProperty({ type: [ActionRecommendation] })
-    recommendations: ActionRecommendation[];
+  @ApiProperty({ type: [String] })
+  impactedGoals: string[];
+
+  @ApiProperty({ type: [ActionRecommendation] })
+  recommendations: ActionRecommendation[];
 }

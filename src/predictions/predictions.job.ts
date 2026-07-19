@@ -9,7 +9,7 @@ export class PredictionsJob {
 
   constructor(
     private prisma: PrismaService,
-    private predictionService: PredictionEngineService
+    private predictionService: PredictionEngineService,
   ) {}
 
   /**
@@ -19,14 +19,14 @@ export class PredictionsJob {
   @Cron('0 0 4 * * *') // Segundo 0, Minuto 0, Hora 4, Todo dia
   async handleMonthlyPredictions() {
     this.logger.log('Starting monthly variable expense predictions job...');
-    
+
     // Buscar usuários ativos (que tiveram login nos últimos 30 dias ou criaram conta)
     const activeUsers = await this.prisma.user.findMany({
       select: { id: true },
       where: {
         // Opcional: filtrar apenas ativos para economizar recursos
-        // lastLoginAt: { gte: thirtyDaysAgo } 
-      }
+        // lastLoginAt: { gte: thirtyDaysAgo }
+      },
     });
 
     this.logger.log(`Found ${activeUsers.length} users to process.`);
@@ -40,7 +40,9 @@ export class PredictionsJob {
       try {
         await this.processUserPredictions(user.id, targetMonth);
       } catch (e) {
-        this.logger.error(`Failed to process predictions for user ${user.id}: ${e.message}`);
+        this.logger.error(
+          `Failed to process predictions for user ${user.id}: ${e.message}`,
+        );
       }
     }
 
@@ -49,14 +51,19 @@ export class PredictionsJob {
 
   private async processUserPredictions(userId: string, targetMonth: Date) {
     // 1. Detectar categorias variáveis
-    const variableCategories = await this.predictionService.detectVariableCategories(userId);
-    
+    const variableCategories =
+      await this.predictionService.detectVariableCategories(userId);
+
     if (variableCategories.length === 0) return;
 
     // 2. Para cada categoria, gerar previsão
     for (const categoryId of variableCategories) {
-      const prediction = await this.predictionService.predictCategoryExpense(userId, categoryId, targetMonth);
-      
+      const prediction = await this.predictionService.predictCategoryExpense(
+        userId,
+        categoryId,
+        targetMonth,
+      );
+
       if (!prediction) continue;
 
       // 3. Salvar no banco
@@ -65,8 +72,8 @@ export class PredictionsJob {
           userId_categoryId_month: {
             userId,
             categoryId,
-            month: targetMonth
-          }
+            month: targetMonth,
+          },
         },
         update: {
           predicted: prediction.predictedAmount,
@@ -74,7 +81,7 @@ export class PredictionsJob {
           lowerBound: prediction.lowerBound,
           upperBound: prediction.upperBound,
           factors: prediction.factors as any,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         create: {
           userId,
@@ -84,8 +91,8 @@ export class PredictionsJob {
           confidence: prediction.confidence,
           lowerBound: prediction.lowerBound,
           upperBound: prediction.upperBound,
-          factors: prediction.factors as any
-        }
+          factors: prediction.factors as any,
+        },
       });
     }
   }

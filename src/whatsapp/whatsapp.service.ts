@@ -88,7 +88,9 @@ export class WhatsappService {
           (categoryName ? ` (${categoryName})` : ''),
       );
     } catch (err: any) {
-      this.logger.error(`Falha ao registrar transação via WhatsApp: ${err?.message}`);
+      this.logger.error(
+        `Falha ao registrar transação via WhatsApp: ${err?.message}`,
+      );
       await this.evolution.sendText(
         jidDigits,
         'Ops, não consegui registrar agora. Tente novamente em instantes.',

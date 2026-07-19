@@ -1,4 +1,11 @@
-import { IsEnum, IsNumber, IsOptional, IsString, IsDateString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsDateString,
+  Min,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum ScenarioType {
@@ -6,7 +13,7 @@ export enum ScenarioType {
   INCOME_LOSS = 'INCOME_LOSS',
   EMERGENCY_EXPENSE = 'EMERGENCY_EXPENSE',
   NEW_RECURRING = 'NEW_RECURRING',
-  DEBT_PAYMENT = 'DEBT_PAYMENT'
+  DEBT_PAYMENT = 'DEBT_PAYMENT',
 }
 
 export class SimulateScenarioDto {

@@ -9,9 +9,9 @@ import { tap } from 'rxjs/operators';
 
 /**
  * Interceptor que adiciona header X-Response-Time em todas as respostas
- * 
+ *
  * Útil para debugging e monitoramento de performance
- * 
+ *
  * @example
  * Response header: X-Response-Time: 123ms
  */

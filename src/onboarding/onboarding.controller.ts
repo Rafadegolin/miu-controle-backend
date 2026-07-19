@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Patch,
+} from '@nestjs/common';
 import { OnboardingService } from './onboarding.service';
 import { UpdateOnboardingStepDto } from './dto/update-onboarding-step.dto';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';

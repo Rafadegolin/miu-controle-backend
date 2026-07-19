@@ -14,34 +14,36 @@ import { PrismaService } from '../prisma/prisma.service'; // Direct prisma usage
 @ApiBearerAuth()
 export class ProactiveAlertsController {
   constructor(
-      private readonly service: ProactiveAlertsService,
-      private readonly prisma: PrismaService
+    private readonly service: ProactiveAlertsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get()
   @ApiOperation({ summary: 'Listar alertas ativos' })
   async findAll(@CurrentUser() user) {
-      return this.prisma.proactiveAlert.findMany({
-          where: { userId: user.id, dismissed: false },
-          orderBy: { createdAt: 'desc' }
-      });
+    return this.prisma.proactiveAlert.findMany({
+      where: { userId: user.id, dismissed: false },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   @Post(':id/dismiss')
   @ApiOperation({ summary: 'Marcar alerta como dispensado' })
   async dismiss(@CurrentUser() user, @Param('id') id: string) {
-      return this.prisma.proactiveAlert.update({
-          where: { id, userId: user.id },
-          data: { dismissed: true }
-      });
+    return this.prisma.proactiveAlert.update({
+      where: { id, userId: user.id },
+      data: { dismissed: true },
+    });
   }
 
   @Post('run-checks')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Executar verificações manualmente (somente ADMIN)' })
+  @ApiOperation({
+    summary: 'Executar verificações manualmente (somente ADMIN)',
+  })
   async runChecks() {
-       await this.service.runDailyChecks();
-       return { message: 'Checks executed' };
+    await this.service.runDailyChecks();
+    return { message: 'Checks executed' };
   }
 }

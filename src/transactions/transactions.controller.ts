@@ -20,6 +20,7 @@ import {
   ApiQuery,
   ApiConsumes,
   ApiBody,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
@@ -29,6 +30,10 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { FilterTransactionDto } from './dto/filter-transaction.dto';
 import { ReceiptAnalysisResponseDto } from './dto/receipt-analysis-response.dto';
+import {
+  TransactionItemDto,
+  TransactionListResponseDto,
+} from './dto/transaction-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CorrectCategoryDto } from '../ai/dto/correct-category.dto';
@@ -56,6 +61,7 @@ export class TransactionsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar transações com filtros' })
+  @ApiOkResponse({ type: TransactionListResponseDto })
   findAll(@CurrentUser() user, @Query() filters: FilterTransactionDto) {
     return this.transactionsService.findAll(user.id, filters);
   }
@@ -85,6 +91,7 @@ export class TransactionsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Buscar transação por ID' })
+  @ApiOkResponse({ type: TransactionItemDto })
   findOne(@Param('id') id: string, @CurrentUser() user) {
     return this.transactionsService.findOne(id, user.id);
   }
@@ -154,6 +161,7 @@ export class TransactionsController {
       },
     },
   })
+  @ApiOkResponse({ type: ReceiptAnalysisResponseDto })
   analyzeReceipt(
     @CurrentUser() user,
     @UploadedFile() file: Express.Multer.File,

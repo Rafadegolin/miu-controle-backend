@@ -1,4 +1,3 @@
-
 export class TransactionCreatedEvent {
   constructor(
     public readonly userId: string,
@@ -18,8 +17,16 @@ export class GoalContributedEvent {
 }
 
 export class BudgetReviewEvent {
-    constructor(
-        public readonly userId: string,
-        public readonly month: Date
-    ) {}
+  constructor(
+    public readonly userId: string,
+    public readonly month: Date,
+  ) {}
+}
+
+export class MissionCompletedEvent {
+  constructor(
+    public readonly userId: string,
+    public readonly missionId: string,
+    public readonly xpReward: number,
+  ) {}
 }

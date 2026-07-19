@@ -7,17 +7,26 @@ export class CreateReleaseNoteDto {
   @IsNotEmpty()
   version: string;
 
-  @ApiProperty({ example: 'Novas funcionalidades de IA', description: 'Título da nota' })
+  @ApiProperty({
+    example: 'Novas funcionalidades de IA',
+    description: 'Título da nota',
+  })
   @IsString()
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ example: 'Agora você pode usar a IA para...', description: 'Conteúdo em Markdown' })
+  @ApiProperty({
+    example: 'Agora você pode usar a IA para...',
+    description: 'Conteúdo em Markdown',
+  })
   @IsString()
   @IsNotEmpty()
   content: string;
 
-  @ApiProperty({ example: true, description: 'Se a nota deve ser exibida imediatamente' })
+  @ApiProperty({
+    example: true,
+    description: 'Se a nota deve ser exibida imediatamente',
+  })
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;

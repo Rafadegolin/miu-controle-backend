@@ -10,7 +10,6 @@ import { RiskAlertAnalyzer } from './analyzers/risk-alert.analyzer';
 import { RecommendationType, RecommendationStatus } from '@prisma/client';
 import { AnalyzerResult } from './analyzers/analyzer.interface';
 
-
 import { GeminiService } from '../ai/services/gemini.service';
 import { OpenAiService } from '../ai/services/openai.service';
 import { AiKeyManagerService } from '../ai/services/ai-key-manager.service';
@@ -34,7 +33,7 @@ export class RecommendationsService {
 
   async findAll(userId: string) {
     return this.prisma.recommendation.findMany({
-      where: { 
+      where: {
         userId,
         status: 'ACTIVE',
       },
@@ -48,10 +47,10 @@ export class RecommendationsService {
   async generateRecommendationsJob() {
     this.logger.log('Starting weekly recommendation generation job...');
     const users = await this.prisma.user.findMany({
-      where: { 
-        accounts: { some: {} } // Usuários ativos com contas
-      }, 
-      select: { id: true }
+      where: {
+        accounts: { some: {} }, // Usuários ativos com contas
+      },
+      select: { id: true },
     });
 
     for (const user of users) {
@@ -63,25 +62,34 @@ export class RecommendationsService {
   async generateRecommendationsForUser(userId: string) {
     // 1. Limpar (ou expirar) recomendações antigas
     await this.prisma.recommendation.updateMany({
-      where: { userId, status: 'ACTIVE',  createdAt: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }, // > 30 dias
-      data: { status: 'EXPIRED' }
+      where: {
+        userId,
+        status: 'ACTIVE',
+        createdAt: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      }, // > 30 dias
+      data: { status: 'EXPIRED' },
     });
 
     // 2. Verificar limite (máximo 5 ativas)
-    const activeCount = await this.prisma.recommendation.count({ where: { userId, status: 'ACTIVE' } });
+    const activeCount = await this.prisma.recommendation.count({
+      where: { userId, status: 'ACTIVE' },
+    });
     if (activeCount >= 5) return;
 
     // 3. Executar analisadores
     const allResults: AnalyzerResult[] = [];
-    
+
     try {
-      allResults.push(...await this.expenseReducer.analyze(userId));
-      allResults.push(...await this.subscriptionReviewer.analyze(userId));
-      allResults.push(...await this.budgetOptimizer.analyze(userId));
-      allResults.push(...await this.opportunityDetector.analyze(userId));
-      allResults.push(...await this.riskAlert.analyze(userId));
+      allResults.push(...(await this.expenseReducer.analyze(userId)));
+      allResults.push(...(await this.subscriptionReviewer.analyze(userId)));
+      allResults.push(...(await this.budgetOptimizer.analyze(userId)));
+      allResults.push(...(await this.opportunityDetector.analyze(userId)));
+      allResults.push(...(await this.riskAlert.analyze(userId)));
     } catch (error) {
-      this.logger.error(`Error analyzing recommendations for user ${userId}:`, error);
+      this.logger.error(
+        `Error analyzing recommendations for user ${userId}:`,
+        error,
+      );
       return;
     }
 
@@ -91,7 +99,10 @@ export class RecommendationsService {
     // Buscar config de IA via Manager
     let aiConfig = null;
     try {
-      aiConfig = await this.aiKeyManagerService.getApiKey(userId, AiFeatureType.RECOMMENDATIONS);
+      aiConfig = await this.aiKeyManagerService.getApiKey(
+        userId,
+        AiFeatureType.RECOMMENDATIONS,
+      );
     } catch (e) {
       // Silenciosamente ignora erro de config (usa texto padrão)
       // this.logger.debug(`AI not configured for user ${userId}: ${e.message}`);
@@ -100,14 +111,23 @@ export class RecommendationsService {
     for (const res of allResults) {
       // Evitar duplicatas (mesmo tipo e categoria ativa)
       const duplicate = await this.prisma.recommendation.findFirst({
-        where: { userId, status: 'ACTIVE', type: res.type, category: res.category }
+        where: {
+          userId,
+          status: 'ACTIVE',
+          type: res.type,
+          category: res.category,
+        },
       });
       if (duplicate) continue;
 
       let description = res.description;
       if (aiConfig) {
         // Refinar com IA
-        description = await this.refineDescription(res.description, aiConfig.model, aiConfig.apiKey);
+        description = await this.refineDescription(
+          res.description,
+          aiConfig.model,
+          aiConfig.apiKey,
+        );
       }
 
       const priority = this.calculatePriorityScore(res.impact, res.difficulty);
@@ -117,22 +137,28 @@ export class RecommendationsService {
           userId,
           type: res.type,
           title: res.title,
-          description, 
+          description,
           impact: res.impact,
           difficulty: res.difficulty,
           priority,
           category: res.category,
           status: 'ACTIVE',
-        }
+        },
       });
-      
+
       // Checar limite novamente para não exceder no loop
-      const currentCount = await this.prisma.recommendation.count({ where: { userId, status: 'ACTIVE' } });
-      if (currentCount >= 5) break; 
+      const currentCount = await this.prisma.recommendation.count({
+        where: { userId, status: 'ACTIVE' },
+      });
+      if (currentCount >= 5) break;
     }
   }
 
-  private async refineDescription(text: string, model: string, apiKey: string): Promise<string> {
+  private async refineDescription(
+    text: string,
+    model: string,
+    apiKey: string,
+  ): Promise<string> {
     if (model.startsWith('gemini')) {
       return this.geminiService.enhanceText(text, apiKey);
     } else {
@@ -141,11 +167,13 @@ export class RecommendationsService {
   }
 
   private calculatePriorityScore(impact: number, difficulty: number): number {
-    return Math.round((impact * 0.6) + ((6 - difficulty) * 0.4) * 20);
+    return Math.round(impact * 0.6 + (6 - difficulty) * 0.4 * 20);
   }
 
   async applyRecommendation(userId: string, recommendationId: string) {
-    const rec = await this.prisma.recommendation.findUnique({ where: { id: recommendationId, userId } });
+    const rec = await this.prisma.recommendation.findUnique({
+      where: { id: recommendationId, userId },
+    });
     if (!rec) throw new NotFoundException('Recommendation not found');
 
     // Lógica de "Aplicação Automática"
@@ -154,20 +182,20 @@ export class RecommendationsService {
 
     return this.prisma.recommendation.update({
       where: { id: recommendationId },
-      data: { 
+      data: {
         status: 'APPLIED',
         appliedAt: new Date(),
-      }
+      },
     });
   }
 
   async dismissRecommendation(userId: string, recommendationId: string) {
     return this.prisma.recommendation.update({
       where: { id: recommendationId, userId },
-      data: { 
+      data: {
         status: 'DISMISSED',
         dismissedAt: new Date(),
-      }
+      },
     });
   }
 }

@@ -45,25 +45,26 @@ export class GoalsService {
     // Busca apenas objetivos RAIZ (nível 0 ou sem pai) e traz filhos recursivamente
     // Prisma não tem suporte nativo a recursão infinita no 'include', então vamos pegar até nivel 4 manualmente
     const includeLevel = {
-        children: {
+      children: {
+        include: {
+          children: {
             include: {
-                children: {
-                    include: {
-                        children: true // Nível 3 (pai=0, filho=1, neto=2, bisneto=3)
-                    }
-                }
-            }
-        }
+              children: true, // Nível 3 (pai=0, filho=1, neto=2, bisneto=3)
+            },
+          },
+        },
+      },
     };
 
     return this.prisma.goal.findMany({
-        where: { userId, parentId: null },
-        include: includeLevel,
-        orderBy: { priority: 'desc' }
+      where: { userId, parentId: null },
+      include: includeLevel,
+      orderBy: { priority: 'desc' },
     });
   }
 
-  async create(userId: string, createGoalDto: any) { // Using any for extended DTO (custom)
+  async create(userId: string, createGoalDto: any) {
+    // Using any for extended DTO (custom)
     const targetDate = createGoalDto.targetDate
       ? new Date(createGoalDto.targetDate)
       : null;
@@ -76,12 +77,18 @@ export class GoalsService {
     // Validar Hierarquia (Maximum Depth 4)
     let hierarchyLevel = 0;
     if (createGoalDto.parentId) {
-        const parent = await this.prisma.goal.findUnique({ where: { id: createGoalDto.parentId } });
-        if (!parent) throw new BadRequestException('Objetivo pai não encontrado');
-        if (parent.userId !== userId) throw new ForbiddenException('Acesso negado ao objetivo pai');
-        
-        hierarchyLevel = parent.hierarchyLevel + 1;
-        if (hierarchyLevel > 3) throw new BadRequestException('Profundidade máxima atingida (4 níveis)');
+      const parent = await this.prisma.goal.findUnique({
+        where: { id: createGoalDto.parentId },
+      });
+      if (!parent) throw new BadRequestException('Objetivo pai não encontrado');
+      if (parent.userId !== userId)
+        throw new ForbiddenException('Acesso negado ao objetivo pai');
+
+      hierarchyLevel = parent.hierarchyLevel + 1;
+      if (hierarchyLevel > 3)
+        throw new BadRequestException(
+          'Profundidade máxima atingida (4 níveis)',
+        );
     }
 
     return this.prisma.goal.create({
@@ -99,7 +106,7 @@ export class GoalsService {
         // New Fields
         parentId: createGoalDto.parentId,
         hierarchyLevel,
-        distributionStrategy: createGoalDto.distributionStrategy
+        distributionStrategy: createGoalDto.distributionStrategy,
       },
     });
   }
@@ -245,19 +252,23 @@ export class GoalsService {
   ) {
     const goal = await this.prisma.goal.findUnique({
       where: { id },
-      include: { children: true }
+      include: { children: true },
     });
-    
+
     if (!goal) throw new NotFoundException('Objetivo não encontrado');
     if (goal.userId !== userId) throw new ForbiddenException('Sem permissão');
-    if (goal.status !== 'ACTIVE') throw new BadRequestException('Só é possível contribuir para objetivos ativos');
+    if (goal.status !== 'ACTIVE')
+      throw new BadRequestException(
+        'Só é possível contribuir para objetivos ativos',
+      );
 
     // Validar transação se fornecida
     if (contributeDto.transactionId) {
       const transaction = await this.prisma.transaction.findUnique({
         where: { id: contributeDto.transactionId },
       });
-      if (!transaction || transaction.userId !== userId) throw new NotFoundException('Transação não encontrada');
+      if (!transaction || transaction.userId !== userId)
+        throw new NotFoundException('Transação não encontrada');
     }
 
     const date = contributeDto.date ? new Date(contributeDto.date) : new Date();
@@ -265,96 +276,130 @@ export class GoalsService {
     // LÓGICA DE DISTRIBUIÇÃO (Issue #65)
     // Se tiver filhos, distribuir
     if (goal.children.length > 0) {
-        if (goal.distributionStrategy === 'PROPORTIONAL') {
-            await this.distributeProportional(goal, contributeDto.amount, userId);
-        } else if (goal.distributionStrategy === 'SEQUENTIAL') {
-            await this.distributeSequential(goal, contributeDto.amount, userId);
-        } else {
-            // Default or Manual (se manual, apenas joga no pai por enquanto ou exige endpoint especifico, vamos assumir proporcional como fallback)
-            await this.distributeProportional(goal, contributeDto.amount, userId);
-        }
-        // Recalcula o pai
-        await this.updateAggregatedProgress(goal.id);
-        
-        // Retorna estado atualizado
-        return this.findOne(id, userId);
-    } 
-    
+      if (goal.distributionStrategy === 'PROPORTIONAL') {
+        await this.distributeProportional(goal, contributeDto.amount, userId);
+      } else if (goal.distributionStrategy === 'SEQUENTIAL') {
+        await this.distributeSequential(goal, contributeDto.amount, userId);
+      } else {
+        // Default or Manual (se manual, apenas joga no pai por enquanto ou exige endpoint especifico, vamos assumir proporcional como fallback)
+        await this.distributeProportional(goal, contributeDto.amount, userId);
+      }
+      // Recalcula o pai
+      await this.updateAggregatedProgress(goal.id);
+
+      // Retorna estado atualizado
+      return this.findOne(id, userId);
+    }
+
     // Se for folha, comportamento normal
-    return this.addContribution(id, contributeDto.amount, userId, contributeDto.transactionId, date);
+    return this.addContribution(
+      id,
+      contributeDto.amount,
+      userId,
+      contributeDto.transactionId,
+      date,
+    );
   }
 
   // --- HIERARCHY HELPERS (Issue #65) ---
 
-  private async addContribution(goalId: string, amount: number, userId: string, transactionId?: string, date = new Date()) {
-      const contribution = await this.prisma.goalContribution.create({
-          data: { goalId, transactionId, amount, date }
-      });
-      
-      const goal = await this.prisma.goal.findUnique({ where: { id: goalId } });
-      const newAmount = Number(goal.currentAmount) + amount;
-      
-      let updateData: any = { currentAmount: newAmount };
-      if (newAmount >= Number(goal.targetAmount) && goal.status === 'ACTIVE') {
-          updateData.status = 'COMPLETED';
-          updateData.completedAt = new Date();
-          // Notificar
-          try { await this.notificationsService.checkGoalAchieved(goalId); } catch(e) {}
-      }
+  private async addContribution(
+    goalId: string,
+    amount: number,
+    userId: string,
+    transactionId?: string,
+    date = new Date(),
+  ) {
+    const contribution = await this.prisma.goalContribution.create({
+      data: { goalId, transactionId, amount, date },
+    });
 
-      await this.prisma.goal.update({ where: { id: goalId }, data: updateData });
+    const goal = await this.prisma.goal.findUnique({ where: { id: goalId } });
+    const newAmount = Number(goal.currentAmount) + amount;
 
-      // Emit Gamification Event
-      this.eventEmitter.emit(
-        'goal.contributed',
-        new GoalContributedEvent(userId, goalId, amount),
-      );
+    const updateData: any = { currentAmount: newAmount };
+    if (newAmount >= Number(goal.targetAmount) && goal.status === 'ACTIVE') {
+      updateData.status = 'COMPLETED';
+      updateData.completedAt = new Date();
+      // Notificar
+      try {
+        await this.notificationsService.checkGoalAchieved(goalId);
+      } catch (e) {}
+    }
 
-      return { contribution, goal: { ...goal, ...updateData } };
+    await this.prisma.goal.update({ where: { id: goalId }, data: updateData });
+
+    // Emit Gamification Event
+    this.eventEmitter.emit(
+      'goal.contributed',
+      new GoalContributedEvent(userId, goalId, amount),
+    );
+
+    return { contribution, goal: { ...goal, ...updateData } };
   }
 
-  private async distributeProportional(parent: any, amount: number, userId: string) {
-      const totalTarget = parent.children.reduce((sum, child) => sum + Number(child.targetAmount), 0);
-      
-      if (totalTarget === 0) {
-          const share = amount / parent.children.length;
-          for (const child of parent.children) await this.addContribution(child.id, share, userId);
-          return;
-      }
+  private async distributeProportional(
+    parent: any,
+    amount: number,
+    userId: string,
+  ) {
+    const totalTarget = parent.children.reduce(
+      (sum, child) => sum + Number(child.targetAmount),
+      0,
+    );
 
-      for (const child of parent.children) {
-          const weight = Number(child.targetAmount) / totalTarget;
-          const share = amount * weight;
-          await this.addContribution(child.id, share, userId);
-      }
+    if (totalTarget === 0) {
+      const share = amount / parent.children.length;
+      for (const child of parent.children)
+        await this.addContribution(child.id, share, userId);
+      return;
+    }
+
+    for (const child of parent.children) {
+      const weight = Number(child.targetAmount) / totalTarget;
+      const share = amount * weight;
+      await this.addContribution(child.id, share, userId);
+    }
   }
 
-  private async distributeSequential(parent: any, amount: number, userId: string) {
-      const sortedChildren = parent.children.sort((a,b) => b.priority - a.priority);
-      
-      let remaining = amount;
-      for (const child of sortedChildren) {
-          if (remaining <= 0) break;
-          const missing = Number(child.targetAmount) - Number(child.currentAmount);
-          if (missing <= 0) continue; 
+  private async distributeSequential(
+    parent: any,
+    amount: number,
+    userId: string,
+  ) {
+    const sortedChildren = parent.children.sort(
+      (a, b) => b.priority - a.priority,
+    );
 
-          const toAdd = Math.min(remaining, missing);
-          await this.addContribution(child.id, toAdd, userId);
-          remaining -= toAdd;
-      }
+    let remaining = amount;
+    for (const child of sortedChildren) {
+      if (remaining <= 0) break;
+      const missing = Number(child.targetAmount) - Number(child.currentAmount);
+      if (missing <= 0) continue;
+
+      const toAdd = Math.min(remaining, missing);
+      await this.addContribution(child.id, toAdd, userId);
+      remaining -= toAdd;
+    }
   }
 
   private async updateAggregatedProgress(parentId: string) {
-      const parent = await this.prisma.goal.findUnique({ where: { id: parentId }, include: { children: true } });
-      if(!parent) return;
+    const parent = await this.prisma.goal.findUnique({
+      where: { id: parentId },
+      include: { children: true },
+    });
+    if (!parent) return;
 
-      const totalCurrent = parent.children.reduce((sum, child) => sum + Number(child.currentAmount), 0);
-      await this.prisma.goal.update({
-          where: { id: parentId },
-          data: { currentAmount: totalCurrent }
-      });
-      
-      if (parent.parentId) await this.updateAggregatedProgress(parent.parentId);
+    const totalCurrent = parent.children.reduce(
+      (sum, child) => sum + Number(child.currentAmount),
+      0,
+    );
+    await this.prisma.goal.update({
+      where: { id: parentId },
+      data: { currentAmount: totalCurrent },
+    });
+
+    if (parent.parentId) await this.updateAggregatedProgress(parent.parentId);
   }
 
   async withdraw(id: string, userId: string, amount: number) {
@@ -448,7 +493,8 @@ export class GoalsService {
       totalTargeted,
       totalSaved,
       totalRemaining: totalTargeted - totalSaved,
-      overallProgress: totalTargeted > 0 ? (totalSaved / totalTargeted) * 100 : 0,
+      overallProgress:
+        totalTargeted > 0 ? (totalSaved / totalTargeted) * 100 : 0,
       goals: goals.map((goal) => ({
         id: goal.id,
         name: goal.name,
@@ -631,7 +677,7 @@ export class GoalsService {
   ): Promise<{
     total: number;
     totalBRL: number;
-    byCurrenty: Record<string, number>;
+    byCurrency: Record<string, number>;
     links: PurchaseLink[];
   }> {
     const goal = await this.findOne(goalId, userId);
@@ -657,7 +703,7 @@ export class GoalsService {
     return {
       total: links.length,
       totalBRL,
-      byCurrenty: byCurrency,
+      byCurrency,
       links,
     };
   }

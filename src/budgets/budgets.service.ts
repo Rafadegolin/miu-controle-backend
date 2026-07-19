@@ -10,6 +10,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { BudgetPeriod } from '@prisma/client';
+import {
+  BudgetStatus,
+  computeBudgetStatus,
+} from '../common/enums/budget-status.enum';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { CacheService } from '../common/services/cache.service';
@@ -386,9 +390,10 @@ export class BudgetsService {
     return Number(result._sum.amount || 0);
   }
 
-  private getBudgetStatus(percentage: number, alertPercentage: number): string {
-    if (percentage >= 100) return 'EXCEEDED'; // Vermelho
-    if (percentage >= alertPercentage) return 'WARNING'; // Amarelo
-    return 'OK'; // Verde
+  private getBudgetStatus(
+    percentage: number,
+    alertPercentage: number,
+  ): BudgetStatus {
+    return computeBudgetStatus(percentage, alertPercentage);
   }
 }

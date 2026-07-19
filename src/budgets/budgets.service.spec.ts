@@ -212,9 +212,9 @@ describe('BudgetsService', () => {
         userId: 'different-user',
       });
 
-      await expect(
-        service.findOne(mockBudgetId, mockUserId),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.findOne(mockBudgetId, mockUserId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 

@@ -18,14 +18,14 @@ export class OpportunityDetectorAnalyzer implements Analyzer {
       where: {
         userId,
         date: { gte: threeMonthsAgo },
-        status: 'COMPLETED'
-      }
+        status: 'COMPLETED',
+      },
     });
 
     let totalIncome = 0;
     let totalExpense = 0;
 
-    transactions.forEach(t => {
+    transactions.forEach((t) => {
       if (t.type === 'INCOME') totalIncome += Number(t.amount);
       else if (t.type === 'EXPENSE') totalExpense += Number(t.amount);
     });
@@ -41,7 +41,7 @@ export class OpportunityDetectorAnalyzer implements Analyzer {
         impact: monthlyAverageSurplus * 12, // Projeção anual
         difficulty: 2,
         category: 'Investimentos',
-        metadata: { suggestedMonthlyAmount: monthlyAverageSurplus * 0.8 } // Sugere investir 80% da sobra
+        metadata: { suggestedMonthlyAmount: monthlyAverageSurplus * 0.8 }, // Sugere investir 80% da sobra
       });
     }
 

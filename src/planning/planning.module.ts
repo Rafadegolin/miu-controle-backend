@@ -7,6 +7,6 @@ import { AnalysisModule } from '../analysis/analysis.module';
   imports: [AnalysisModule],
   providers: [PlanningService],
   controllers: [PlanningController],
-  exports: [PlanningService]
+  exports: [PlanningService],
 })
 export class PlanningModule {}

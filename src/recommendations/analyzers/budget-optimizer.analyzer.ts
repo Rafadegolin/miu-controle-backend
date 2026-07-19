@@ -13,20 +13,17 @@ export class BudgetOptimizerAnalyzer implements Analyzer {
     // Busca orçamentos ativos do mês atual
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+
     // Simplificação: assume orçamento 'MONTHLY' com startDate neste mês ou genéricos
     // Na prática, buscaria orçamentos válidos para o período atual
     const budgets = await this.prisma.budget.findMany({
-      where: { 
+      where: {
         userId,
         period: 'MONTHLY',
         startDate: { lte: now },
-        OR: [
-          { endDate: null },
-          { endDate: { gte: now } }
-        ]
+        OR: [{ endDate: null }, { endDate: { gte: now } }],
       },
-      include: { category: true }
+      include: { category: true },
     });
 
     for (const budget of budgets) {
@@ -54,7 +51,7 @@ export class BudgetOptimizerAnalyzer implements Analyzer {
           impact: 0, // Impacto financeiro direto é zero, mas organizacional é alto
           difficulty: 2,
           category: budget.category.name,
-          metadata: { budgetId: budget.id, action: 'INCREASE' }
+          metadata: { budgetId: budget.id, action: 'INCREASE' },
         });
       }
 
@@ -69,7 +66,11 @@ export class BudgetOptimizerAnalyzer implements Analyzer {
           impact: potentialSavings,
           difficulty: 1,
           category: budget.category.name,
-          metadata: { budgetId: budget.id, action: 'DECREASE', suggestedAmount: spent * 1.2 }
+          metadata: {
+            budgetId: budget.id,
+            action: 'DECREASE',
+            suggestedAmount: spent * 1.2,
+          },
         });
       }
     }

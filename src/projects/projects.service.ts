@@ -703,7 +703,7 @@ export class ProjectsService {
     });
 
     this.assertOwner(project, userId, 'Projeto');
-    return project!;
+    return project;
   }
 
   /**

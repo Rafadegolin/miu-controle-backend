@@ -4,7 +4,7 @@ import { AiFeatureType } from '@prisma/client';
 
 /**
  * Service for tracking and managing AI usage metrics
- * 
+ *
  * Responsibilities:
  * - Track token usage per feature
  * - Calculate costs
@@ -107,7 +107,10 @@ export class AiUsageService {
   async getMonthlyUsage(userId: string): Promise<{
     totalTokens: number;
     totalCost: number;
-    byFeature: Record<string, { tokens: number; cost: number; requests: number }>;
+    byFeature: Record<
+      string,
+      { tokens: number; cost: number; requests: number }
+    >;
   }> {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -127,7 +130,10 @@ export class AiUsageService {
       0,
     );
 
-    const byFeature: Record<string, { tokens: number; cost: number; requests: number }> = {};
+    const byFeature: Record<
+      string,
+      { tokens: number; cost: number; requests: number }
+    > = {};
 
     for (const metric of metrics) {
       if (!byFeature[metric.feature]) {
@@ -135,7 +141,9 @@ export class AiUsageService {
       }
 
       byFeature[metric.feature].tokens += metric.totalTokens;
-      byFeature[metric.feature].cost += parseFloat(metric.estimatedCost.toString());
+      byFeature[metric.feature].cost += parseFloat(
+        metric.estimatedCost.toString(),
+      );
       byFeature[metric.feature].requests += 1;
     }
 
@@ -180,14 +188,14 @@ export class AiUsageService {
   ): number {
     // Pricing per 1M tokens (as of December 2024)
     const pricing: Record<string, { input: number; output: number }> = {
-      'gpt-4o-mini': { input: 0.15, output: 0.60 },
+      'gpt-4o-mini': { input: 0.15, output: 0.6 },
       'gpt-4o': { input: 5.0, output: 15.0 },
       'gpt-4-turbo': { input: 10.0, output: 30.0 },
       'gpt-4': { input: 30.0, output: 60.0 },
       'gpt-3.5-turbo': { input: 0.5, output: 1.5 },
       // Gemini Pricing (Approx. Dec 2024)
-      'gemini-1.5-flash': { input: 0.075, output: 0.30 },
-      'gemini-1.5-pro': { input: 1.25, output: 5.00 },
+      'gemini-1.5-flash': { input: 0.075, output: 0.3 },
+      'gemini-1.5-pro': { input: 1.25, output: 5.0 },
     };
 
     // Default to gpt-4o-mini pricing if model not found
@@ -225,20 +233,26 @@ export class AiUsageService {
     });
 
     const totalPredictions = metrics.length;
-    
+
     // Calculate average confidence from feedbacks
-    const avgConfidence = feedbacks.length > 0
-      ? feedbacks.reduce((sum, f) => sum + parseFloat(f.aiConfidence.toString()), 0) / feedbacks.length
-      : 0;
+    const avgConfidence =
+      feedbacks.length > 0
+        ? feedbacks.reduce(
+            (sum, f) => sum + parseFloat(f.aiConfidence.toString()),
+            0,
+          ) / feedbacks.length
+        : 0;
 
     // Calculate accuracy (how many were correct)
-    const correctPredictions = feedbacks.filter(f => f.wasCorrect).length;
-    const accuracy = feedbacks.length > 0 ? correctPredictions / feedbacks.length : 0;
+    const correctPredictions = feedbacks.filter((f) => f.wasCorrect).length;
+    const accuracy =
+      feedbacks.length > 0 ? correctPredictions / feedbacks.length : 0;
 
     // Correction rate (how many times user corrected)
-    const correctionRate = totalPredictions > 0
-      ? feedbacks.filter(f => !f.wasCorrect).length / totalPredictions
-      : 0;
+    const correctionRate =
+      totalPredictions > 0
+        ? feedbacks.filter((f) => !f.wasCorrect).length / totalPredictions
+        : 0;
 
     return {
       totalPredictions,

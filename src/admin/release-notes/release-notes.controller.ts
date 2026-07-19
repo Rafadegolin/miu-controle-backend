@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ReleaseNotesService } from './release-notes.service';
 import { CreateReleaseNoteDto } from './dto/create-release-note.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';

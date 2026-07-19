@@ -37,24 +37,24 @@ export class ReleaseNotesService {
       where: { userId },
       select: { releaseNoteId: true },
     });
-    
-    const readIds = new Set(reads.map(r => r.releaseNoteId));
+
+    const readIds = new Set(reads.map((r) => r.releaseNoteId));
 
     // 3. Filter out read notes
-    return activeNotes.filter(note => !readIds.has(note.id));
+    return activeNotes.filter((note) => !readIds.has(note.id));
   }
 
   async markAsRead(userId: string, releaseNoteId: string) {
     try {
-        return await this.prisma.userReleaseRead.create({
-            data: {
-                userId,
-                releaseNoteId
-            }
-        });
+      return await this.prisma.userReleaseRead.create({
+        data: {
+          userId,
+          releaseNoteId,
+        },
+      });
     } catch (error) {
-        // If already exists (unique constraint), just return payload
-        return { message: 'Already read' };
+      // If already exists (unique constraint), just return payload
+      return { message: 'Already read' };
     }
   }
 }

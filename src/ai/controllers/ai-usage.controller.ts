@@ -50,8 +50,7 @@ export class AiUsageController {
   @Get('categorization-stats')
   @ApiOperation({
     summary: 'Get AI categorization performance stats',
-    description:
-      'Returns accuracy, confidence metrics, and correction rate',
+    description: 'Returns accuracy, confidence metrics, and correction rate',
   })
   @ApiResponse({ status: 200, description: 'Categorization stats retrieved' })
   async getCategorizationStats(@CurrentUser('id') userId: string) {

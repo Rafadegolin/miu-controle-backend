@@ -24,11 +24,15 @@ import { WebsocketService } from './websocket.service';
         'https://miucontrole.com.br',
         'https://www.miucontrole.com.br',
       ];
-      
+
       // Permite qualquer URL do Vercel (preview e production)
       const vercelPattern = /^https:\/\/.*\.vercel\.app$/;
-      
-      if (!origin || allowedOrigins.includes(origin) || vercelPattern.test(origin)) {
+
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        vercelPattern.test(origin)
+      ) {
         callback(null, true);
       } else {
         console.warn(`🚫 WebSocket CORS blocked: ${origin}`);
@@ -66,12 +70,14 @@ export class WebsocketGateway
   async handleConnection(@ConnectedSocket() client: Socket) {
     try {
       // Extrair token do handshake
-      const token = 
-        client.handshake.auth?.token || 
-        client.handshake.query?.token as string;
+      const token =
+        client.handshake.auth?.token ||
+        (client.handshake.query?.token as string);
 
       if (!token) {
-        this.logger.warn(`❌ Connection rejected: No token provided (${client.id})`);
+        this.logger.warn(
+          `❌ Connection rejected: No token provided (${client.id})`,
+        );
         client.disconnect();
         return;
       }
@@ -79,18 +85,20 @@ export class WebsocketGateway
       // Validar token JWT manualmente
       const { JwtService } = require('@nestjs/jwt');
       const { PrismaService } = require('../prisma/prisma.service');
-      
+
       const jwtService = new JwtService({
         secret: process.env.JWT_SECRET || 'default-secret',
       });
-      
+
       const prisma = new PrismaService();
 
       try {
         const payload = jwtService.verify(token);
-        
+
         if (!payload || !payload.sub) {
-          this.logger.warn(`❌ Connection rejected: Invalid token payload (${client.id})`);
+          this.logger.warn(
+            `❌ Connection rejected: Invalid token payload (${client.id})`,
+          );
           client.disconnect();
           return;
         }
@@ -106,7 +114,9 @@ export class WebsocketGateway
         });
 
         if (!user) {
-          this.logger.warn(`❌ Connection rejected: User not found (${payload.sub})`);
+          this.logger.warn(
+            `❌ Connection rejected: User not found (${payload.sub})`,
+          );
           client.disconnect();
           return;
         }
@@ -132,13 +142,13 @@ export class WebsocketGateway
           userId,
           timestamp: new Date().toISOString(),
         });
-
       } catch (jwtError) {
-        this.logger.warn(`❌ Connection rejected: JWT verification failed - ${jwtError.message} (${client.id})`);
+        this.logger.warn(
+          `❌ Connection rejected: JWT verification failed - ${jwtError.message} (${client.id})`,
+        );
         client.disconnect();
         return;
       }
-
     } catch (error) {
       this.logger.error(`❌ Error handling connection: ${error.message}`);
       client.disconnect();
@@ -153,9 +163,7 @@ export class WebsocketGateway
     const userEmail = client.data.userEmail;
 
     if (userId) {
-      this.logger.log(
-        `🔴 Client disconnected: ${userEmail} (${client.id})`,
-      );
+      this.logger.log(`🔴 Client disconnected: ${userEmail} (${client.id})`);
     } else {
       this.logger.log(`🔴 Client disconnected: ${client.id} (unauthenticated)`);
     }

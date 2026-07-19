@@ -4,7 +4,7 @@ import { Response } from 'express';
 
 /**
  * Custom exception filter for ThrottlerException (429 Too Many Requests)
- * 
+ *
  * Adiciona:
  * - Retry-After header
  * - Mensagem customizada em português

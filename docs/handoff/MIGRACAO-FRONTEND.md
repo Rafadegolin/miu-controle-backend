@@ -50,7 +50,7 @@ usam o `apiClient` (são `/api/v1/auth/...`).
 |---|---|---|
 | Módulo **multi-moeda** (`/currencies`, `/exchange-rates`) | **Removido** | Apagar `services/currencies.actions.ts` e `services/exchange-rates.actions.ts` e qualquer UI de moeda/câmbio. `Account.currency` continua existindo como string fixa `"BRL"`. |
 | **Simulador de inflação** (`/inflation-simulator` ou `/simulations/inflation`) | **Removido** | Apagar `services/inflation.actions.ts` e a UI relacionada. |
-| `GET /ai/analytics/financial-health` | **Removido** (duplicava) | Usar **`GET /health-score`** (0–1000, com `breakdown` e `level`). Ajustar `services/health-score.actions.ts` (remover `FinancialHealthResponse`). |
+| `GET /ai/analytics/financial-health` | **Removido** (duplicava) | Usar **`GET /health-score`**. Shape real (flat, não há `breakdown`): `totalScore` (0–1000), sub-scores `consistencyScore`, `budgetScore`, `goalsScore`, `emergencyScore`, `diversityScore` e `level` (`CRITICAL \| ATTENTION \| HEALTHY \| GOOD \| EXCELLENT`). Ajustar `services/health-score.actions.ts` (remover `FinancialHealthResponse`). |
 | `POST /scenarios/compare` | **Removido** (era placeholder) | Remover qualquer chamada; não há substituto. |
 | `POST /notifications/test` | **Removido** | Remover (era endpoint de teste). |
 
